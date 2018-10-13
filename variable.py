@@ -1,2 +1,2 @@
-class variable:
+class Variable:
     pass
