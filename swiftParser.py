@@ -8,12 +8,13 @@ swiftLexer.build()
 
 def p_import(p):
     '''
-    int : EXPRESSION_LITERAL_KEYPATH
+    import : IMPORT
     '''
     p[0] = p[1]
     print(p[1])
 
+
 yacc.yacc()
 
-s = '#keyPath'
+s = '5  +-5'
 yacc.parse(s)

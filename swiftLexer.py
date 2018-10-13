@@ -44,9 +44,11 @@ tokens = keywords + context_keywords + expression_literals + ["IDENTIFIER", "STR
                                                               "BOOLEAN_LITERAL", "NIL_LITERAL",
                                                               "BRACKET_L", "BRACKET_R", "CURLY_L", "CURLY_R",
                                                               "SQUARE_L", "SQUARE_R", "SEMICOLON", "COLON", "COMMA",
-                                                              "PERIOD", "AT", "POUND",
-                                                              "AMPERSAND", "ARROW", "BACKTICK", "QUESTION_MARK",
-                                                              "EXCLAMATION_MARK", "ERROR"]
+                                                              "PERIOD", "AT", "POUND", "POSTFIX_QUESTION", "PREFIX_DOT"
+                                                                                                           "AMPERSAND",
+                                                              "ARROW", "BACKTICK", "QUESTION_MARK",
+                                                              "EXCLAMATION_MARK", "ERROR", "PREFIX_AMPERSAND",
+                                                              "BINARY_OPERATOR", "PREFIX_OPERATOR", "POSTFIX_OPERATOR"]
 
 t_ignore = ' \t'
 
@@ -72,33 +74,27 @@ identifier = r"""('?)([\u0041-\u005A]|[\u0061-\u007A]|[\u00B2-\u00B5]|[\u00B7-\u
 \U00070000-\U0007FFFD]|[\U00080000-\U0008FFFD]|[\U00090000-\U0009FFFD]|[\U000A0000-\U000AFFFD]|[
 \U000B0000-\U000BFFFD]|[\U000C0000-\U000CFFFD]|[\U000D0000-\U000DFFFD]|[
 \U000E0000-\U000EFFFD]|\u00A8|\u00AA|\u00A8|\u00AA|\u005F|\u00AD|\u00AF|\u2054)|[\u0030-\u0039]|[\u0300-\u036F]|[
-\u1DC0-\u1DFF]|[\u20D0-\u20FF]|[\uFE20-\uFE2F])*('?) """
+\u1DC0-\u1DFF]|[\u20D0-\u20FF]|[\uFE20-\uFE2F])*('?)"""
 
 expression_literal = r"""\#(keyPath|line|selector|file|column|function|dsohandle|sourceLocation|warning|error|if|else
-|elseif|endif|available|fileLiteral|imageLiteral|colorLiteral) """
+|elseif|endif|available|fileLiteral|imageLiteral|colorLiteral)"""
 
-t_OPERATOR = r"""([\u00A1-\u00A7]|[\u2020-\u2027]|[\u2030-\u203E]|[\u2041-\u2053]|[\u2055-\u205E]|[\u2190-\u23FF]|[
+operator = r"""\s?([\u00A1-\u00A7]|[\u2020-\u2027]|[\u2030-\u203E]|[\u2041-\u2053]|[\u2055-\u205E]|[\u2190-\u23FF]|[
 \u2500-\u2775]|[\u2794-\u2BFF]|[\u2E00-\u2E7F]|[\u3001-\u3003]|[
 \u3008-\u3020]|\/|\=|\-|\+|\!|\*|\%|\<|\>|\&|\||\^|\~|\?|\.|\@|\{|\}|\(|\)|\[|\]|\,
 |\:|\;|\u3030|\u2016|\u2017|\u00A9|\u00AB|\u00AC|\u00AE|\u00B0|\u00B1|\u00B6|\u00BB|\u00BF|\u00D7|\u00F7)(([
 \u00A1-\u00A7]|[\u2020-\u2027]|[\u2030-\u203E]|[\u2041-\u2053]|[\u2055-\u205E]|[\u2190-\u23FF]|[\u2500-\u2775]|[
 \u2794-\u2BFF]|[\u2E00-\u2E7F]|[\u3001-\u3003]|[\u3008-\u3020]|\/|\=|\-|\+|\!|\*|\%|\<|\>|\&|\||\^|\~|\?|\.|\@|\{
 |\}|\(|\)|\[|\]|\,|\:|\;|\u3030|\u2016|\u2017|\u00A9|\u00AB|\u00AC|\u00AE|\u00B0|\u00B1|\u00B6|\u00BB|\u00BF|\u00D7
-|\u00F7)|([\u0300-\u036F]|[\u1DC0-\u1DFF]|[\u20D0-\u20FF]|[\uFE00-\uFE0F]|[\uFE20-\uFE2F]|[\U000E0100-\U000E01EF]))* """
+|\u00F7)|([\u0300-\u036F]|[\u1DC0-\u1DFF]|[\u20D0-\u20FF]|[\uFE00-\uFE0F]|[\uFE20-\uFE2F]|[\U000E0100-\U000E01EF]))*\s?"""
 
 t_STRING_LITERAL = r'".*?"|"""\n(\s*).*\n(\s*)"""'
 
 t_INT_LITERAL = r'0x[0-9a-fA-F][0-9a-fA-F_]*|0o[0-7][0-7_]*|0b[01][01_]*|[0-9][0-9_]*'
 
 t_FLOAT_LITERAL = r'''0x[0-9A-Fa-f][0-9A-Fa-f_]*(\.[0-9A-Fa-f][0-9A-Fa-f_]*)?[pP][+-]?[0-9][0-9_]*|[0-9][0-9_]*[eE][
-+-]?[0-9][0-9_]*|[0-9][0-9]*\.[0-9][0-9_]*[eE][+-]?[0-9][0-9_]*|[0-9][0-9]_*\.[0-9][0-9_]* '''
++-]?[0-9][0-9_]*|[0-9][0-9]*\.[0-9][0-9_]*[eE][+-]?[0-9][0-9_]*|[0-9][0-9]_*\.[0-9][0-9_]*'''
 
-
-# t_BINARY_OPERATOR = r'\s' + t_OPERATOR + r'\s'
-
-# t_POSTFIX_OPERATOR = t_OPERATOR + r'\s'
-
-# t_PREFIX_OPERATOR = r'\s' + t_OPERATOR
 
 @TOKEN(identifier)
 def t_IDENTIFIER(t):
@@ -121,6 +117,13 @@ def t_EXPRESSION_LITERAL(t):
 
 @TOKEN(operator)
 def t_OPERATOR(t):
+    lexdata = t.lexer.lexdata
+    prefix = False
+    postfix = False
+    if t.lexpos > 0:
+        prefix = lexdata[t.lexpos - 1].isspace()
+    if t.lexpos < len(lexdata) - 1:
+        postfix = lexdata[t.lexpos + 1].isspace()
     if t.value[0] == '(' and len(t.value) == 1:
         t.type = "BRACKET_L"
     elif t.value == ')':
@@ -137,6 +140,8 @@ def t_OPERATOR(t):
         t.type = "COMMA"
     elif t.value == '.':
         t.type = "PERIOD"
+        if prefix is True and prefix != postfix:
+            t.type = "PREFIX_DOT"
     elif t.value == ';':
         t.type = "SEMICOLON"
     elif t.value == ':':
@@ -147,19 +152,27 @@ def t_OPERATOR(t):
         t.type = "POUND"
     elif t.value == '&':
         t.type = "AMPERSAND"
-    # TODO PREFIX_AMPERSAND
+        if prefix is True and prefix != postfix:
+            t.type = "PREFIX_AMPERSAND"
     elif len(t.value) == 2 and t.value[0] == '-' and t.value[1] == '>':
         t.type = "ARROW"
     elif t.value == '`':
         t.type = "BACKTICK"
     elif t.value == '?':
         t.type = "QUESTION_MARK"
-    # TODO POSTFIX_QUESTION
+        if postfix is True and prefix != postfix:
+            t.type = "POSTFIX_QUESTION"
     elif t.value == '!':
         t.type = "EXCLAMATION_MARK"
-    # TODO PREFIX_DOT
-    else:
-        t.type = "ERROR"
+
+    # No match here, get the correct type of operator
+    if t.type == "OPERATOR":
+        if prefix == postfix:
+            t.type = "BINARY_OPERATOR"
+        elif prefix:
+            t.type = "PREFIX_OPERATOR"
+        else:
+            t.type = "POSTFIX_OPERATOR"
     return t
 
 
