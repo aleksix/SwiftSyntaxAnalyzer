@@ -11,7 +11,6 @@ def p_import(p):
     import : IMPORT IDENTIFIER
     '''
     p[0] = p[1]
-    print(p[0])
 
 
 yacc.yacc()

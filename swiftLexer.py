@@ -39,12 +39,12 @@ context_keywords = ["associativity", "convenience", "dynamic", "didSet", "final"
 
 keyword_map = {}
 for c in range(len(keywords)):
-    keyword_map[keywords[c]] = keywords[c]
+    keyword_map[keywords[c]] = keywords[c].upper()
     keywords[c] = keywords[c].upper()
 
 context_keyword_map = {}
 for c in range(len(context_keywords)):
-    context_keyword_map[context_keywords[c]] = context_keywords[c]
+    context_keyword_map[context_keywords[c]] = context_keywords[c].upper()
     context_keywords[c] = context_keywords[c].upper()
 
 # All of the tokens
@@ -75,8 +75,8 @@ t_STRING_LITERAL = r'".*?"'
 def t_IDENTIFIER(t):
     if t.value[0] != "'" and t.value[len(t.value) - 1] != "'":
         if keyword_map.get(t.value, "ID") != 'ID':
-            t.type = "KEYWORD"
-
+            t.type = keyword_map[t.value].upper()
+    return t
 
 def build():
     lex.lex()
