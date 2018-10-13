@@ -1,27 +1,6 @@
 import ply.lex as lex
 from ply.lex import TOKEN
 
-'''
-tokens = [
-    "KEYWORD", "IDENTIFIER", "CONTEXT_KEYWORD",
-
-    "STRING_LITERAL", "INTERPOLATED_STRING", "INT_LITERAL", "FLOAT_LITERAL",
-    "EXPRESSION_LITERAL", "BOOLEAN_LITERAL", "NIL_LITERAL",
-
-    "BINARY_OPERATOR", "POSTFIX_OPERATOR", "PREFIX_OPERATOR",
-    "BRACKET_L", "BRACKET_R",
-    "CURLY_L", "CURLY_R",
-    "SQUARE_L", "SQUARE_R",
-
-    "DOT", "COMMA", "COLON", "SEMICOLON",
-    "EQUAL", "AT", "POUND", "AMPERSAND",
-    "PREFIX_AMPERSAND", "ARROW", "BACKTICK", "QUESTION_MARK",
-    "POSTFIX_QUESTION", "EXCLAMATION_MARK", "PREFIX_DOT",
-
-    "ERROR"
-]
-'''
-
 keywords = ["class", "deinit", "enum", "extension", "func", "import", "init", "internal", "let", "operator",
             "private",
             "protocol", "public", "static", "struct", "subscript", "typealias", "var", "open", "inout",
@@ -61,7 +40,13 @@ for c in range(len(expression_literals)):
 
 # All of the tokens
 tokens = keywords + context_keywords + expression_literals + ["IDENTIFIER", "STRING_LITERAL", "INT_LITERAL",
-                                                              "FLOAT_LITERAL", "BOOLEAN_LITERAL", "NIL_LITERAL"]
+                                                              "FLOAT_LITERAL",
+                                                              "BOOLEAN_LITERAL", "NIL_LITERAL",
+                                                              "BRACKET_L", "BRACKET_R", "CURLY_L", "CURLY_R",
+                                                              "SQUARE_L", "SQUARE_R", "SEMICOLON", "COLON", "COMMA",
+                                                              "PERIOD", "AT", "POUND",
+                                                              "AMPERSAND", "ARROW", "BACKTICK", "QUESTION_MARK",
+                                                              "EXCLAMATION_MARK", "ERROR"]
 
 t_ignore = ' \t'
 
@@ -132,6 +117,49 @@ def t_IDENTIFIER(t):
 @TOKEN(expression_literal)
 def t_EXPRESSION_LITERAL(t):
     t.type = expression_literals_map[t.value]
+
+
+@TOKEN(operator)
+def t_OPERATOR(t):
+    if t.value[0] == '(' and len(t.value) == 1:
+        t.type = "BRACKET_L"
+    elif t.value == ')':
+        t.type = "BRACKET_R"
+    elif t.value == '{':
+        t.type = "CURLY_L"
+    elif t.value == '}':
+        t.type = 'CURLY_R'
+    elif t.value == '[':
+        t.type = "SQUARE_L"
+    elif t.value == ']':
+        t.type = "SQUARE_R"
+    elif t.value == ',':
+        t.type = "COMMA"
+    elif t.value == '.':
+        t.type = "PERIOD"
+    elif t.value == ';':
+        t.type = "SEMICOLON"
+    elif t.value == ':':
+        t.type = "COLON"
+    elif t.value == '@':
+        t.type = "AT"
+    elif t.value == '#':
+        t.type = "POUND"
+    elif t.value == '&':
+        t.type = "AMPERSAND"
+    # TODO PREFIX_AMPERSAND
+    elif len(t.value) == 2 and t.value[0] == '-' and t.value[1] == '>':
+        t.type = "ARROW"
+    elif t.value == '`':
+        t.type = "BACKTICK"
+    elif t.value == '?':
+        t.type = "QUESTION_MARK"
+    # TODO POSTFIX_QUESTION
+    elif t.value == '!':
+        t.type = "EXCLAMATION_MARK"
+    # TODO PREFIX_DOT
+    else:
+        t.type = "ERROR"
     return t
 
 
