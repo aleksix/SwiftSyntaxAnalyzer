@@ -8,7 +8,7 @@ swiftLexer.build()
 
 def p_import(p):
     '''
-    import : IMPORT
+    import : STRING_LITERAL
     '''
     p[0] = p[1]
     print(p[1])
@@ -16,5 +16,8 @@ def p_import(p):
 
 yacc.yacc()
 
-s = '5  +-5'
+s = '''
+/*Hello*/
+"/*Hello*/"
+'''
 yacc.parse(s)

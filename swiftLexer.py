@@ -44,13 +44,16 @@ tokens = keywords + context_keywords + expression_literals + ["IDENTIFIER", "STR
                                                               "BOOLEAN_LITERAL", "NIL_LITERAL",
                                                               "BRACKET_L", "BRACKET_R", "CURLY_L", "CURLY_R",
                                                               "SQUARE_L", "SQUARE_R", "SEMICOLON", "COLON", "COMMA",
-                                                              "PERIOD", "AT", "POUND", "POSTFIX_QUESTION", "PREFIX_DOT"
-                                                                                                           "AMPERSAND",
+                                                              "PERIOD", "AT", "POUND", "POSTFIX_QUESTION", "PREFIX_DOT",
+                                                              "AMPERSAND", "UNDERSCORE",
                                                               "ARROW", "BACKTICK", "QUESTION_MARK",
                                                               "EXCLAMATION_MARK", "ERROR", "PREFIX_AMPERSAND",
                                                               "BINARY_OPERATOR", "PREFIX_OPERATOR", "POSTFIX_OPERATOR"]
 
 t_ignore = ' \t'
+
+t_ignore_COMMENT = r'//.*$'
+t_ignore_MULTILINE_COMMENT = r'/\*.*\*/'
 
 # BEHOLD THE UNHOLY ABOMINATION OF REGULAR EXPRESSIVENESS
 # I really feel like I'm writing some sort of a spell from some forbidden book with this one.
