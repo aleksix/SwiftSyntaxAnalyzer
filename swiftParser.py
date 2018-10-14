@@ -310,7 +310,7 @@ def p_loopLabel(p):
     p[0] = buildTree(p[1:])
 
 
-def p_foorLoop(p):
+def p_forLoop(p):
     '''
     forLoop : FOR IDENTIFIER IN expression blockBody
     '''
