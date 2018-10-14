@@ -7,6 +7,14 @@ swiftLexer.build()
 
 constants = []
 
+# Type table
+types = {"Int": 1}
+
+
+def type_lookup(identifier):
+    return types.get(identifier, "ID") != "ID"
+
+
 '''
         CONSTANTS
 '''

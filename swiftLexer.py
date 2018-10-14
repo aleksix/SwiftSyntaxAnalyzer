@@ -49,7 +49,8 @@ tokens = keywords + context_keywords + expression_literals + ["IDENTIFIER", "STR
                                                               "ARROW", "EQUAL", "RANGE_OPERATOR",
                                                               "BACKTICK", "QUESTION_MARK",
                                                               "EXCLAMATION_MARK", "ERROR", "PREFIX_AMPERSAND",
-                                                              "BINARY_OPERATOR", "PREFIX_OPERATOR", "POSTFIX_OPERATOR"]
+                                                              "BINARY_OPERATOR", "PREFIX_OPERATOR", "POSTFIX_OPERATOR",
+                                                              "TYPE"]
 
 t_ignore = ' \t'
 
@@ -111,6 +112,10 @@ def t_IDENTIFIER(t):
             t.type = "BOOLEAN_LITERAL"
         elif t.value == "nil":
             t.type = "NIL_LITERAL"
+
+    if t.type == "IDENTIFIER":
+        if type_lookup(t.value):
+            t.type = "TYPE"
     return t
 
 
@@ -190,5 +195,26 @@ def t_OPERATOR(t):
     return t
 
 
-def build():
-    lex.lex()
+def t_error(t):
+    print("Illegal/ignored value '%s'" % t.value)
+    t.lexer.skip(1)
+
+
+def t_newline(t):
+    r'\n'
+    t.lexer.lineno += 1
+
+
+lexer = None
+type_lookup = None
+
+def build(**kwargs):
+    lexer = lex.lex(**kwargs)
+
+
+def input(text):
+    lexer.input(text)
+
+
+def token():
+    return lexer.token()
