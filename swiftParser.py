@@ -807,6 +807,24 @@ def p_type(p):
     if p[2] is not None:
         p[0]["optional"] = True
 
+def p_loopControl(p):
+    '''
+    loopControl : LoopControls ControlLabel
+    '''
+    p[0] = buildTree(p[1:])
+
+def p_loopControls(p):
+    '''
+    loopControls : BREAK | CONTINUE
+    '''
+    p[0] = buildTree(p[1:])
+
+def p_controlLabel(p):
+    '''
+    controlLabel : IDENTIFIER
+                 | epsilon
+    '''
+    p[0] = buildTree(p[1:])
 
 def p_expression(p):
     '''
