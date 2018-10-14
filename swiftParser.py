@@ -3,17 +3,33 @@ import swiftLexer
 
 tokens = swiftLexer.tokens
 
-swiftLexer.build()
-
-constants = []
-
-# Type table
+# symbol tables
 types = {"Int": 1}
+functions = {"print": 1}
+variables = {"x": 1}
+constants = {"y": 1}
 
 
 def type_lookup(identifier):
     return types.get(identifier, "ID") != "ID"
 
+
+def function_lookup(identifier):
+    return functions.get(identifier, "ID") != "ID"
+
+
+def variable_lookup(identifier):
+    return variables.get(identifier, "ID") != "ID"
+
+
+def constant_lookup(identifier):
+    return constants.get(identifier, "ID") != "ID"
+
+
+swiftLexer.function_lookup = function_lookup
+swiftLexer.type_lookup = type_lookup
+
+swiftLexer.build()
 
 '''
         CONSTANTS
@@ -75,7 +91,7 @@ def p_variableDeclaration(p):
 
 def p_variableDeclarationList(p):
     '''
-    VariableDeclarationList : variableDeclarationStart
+    variableDeclarationList : variableDeclarationStart
                             | variableDeclarationList COMMA IDENTIFIER
     '''
     p[0] = p[1]
@@ -143,7 +159,7 @@ def p_argumentType(p):
 def p_argumentLabel(p):
     '''
     argumentLabel : IDENTIFIER
-                 | underscore
+                 | UNDERSCORE
     '''
     p[0] = p[1]
 
@@ -158,7 +174,7 @@ def p_throws(p):
 
 def p_functionAssignment(p):
     '''
-    functionAssignment  : EQUAL functionName
+    functionAssignment  : EQUAL FUNCTION
                         | epsilon
     '''
     p[0] = p[1]
@@ -166,7 +182,7 @@ def p_functionAssignment(p):
 
 def p_functionCall(p):
     '''    
-    functionCall : functionName BRACKET_L callArgumentList BRACKET_R
+    functionCall : FUNCTION BRACKET_L callArgumentList BRACKET_R
     '''
     p[0] = p[1]
 
@@ -195,6 +211,148 @@ def p_callArgumentReference(p):
 
 
 '''
+        LOOPS
+'''
+
+
+def p_loop(p):
+    '''
+    loop : loopLabel forLoop
+         | loopLabel whileLoop
+         | loopLabel repeatLoop
+    '''
+    p[0] = p[1]
+
+
+def p_loopLabel(p):
+    '''
+    loopLabel : IDENTIFIER COLON
+              | epsilon
+    '''
+    p[0] = p[1]
+
+
+def p_foorLoop(p):
+    '''
+    forLoop : FOR IDENTIFIER IN expression blockBody
+    '''
+    p[0] = p[1]
+
+
+def p_whileLoop(p):
+    '''
+    whileLoop : WHILE expression blockBody
+    '''
+    p[0] = p[1]
+
+
+def p_repeatLoop(p):
+    '''
+    repeatLoop : REPEAT blockBody WHILE expression
+    '''
+    p[0] = p[1]
+
+
+'''
+        CONDITIONALS
+'''
+
+
+def p_branch(p):
+    '''
+    branch : if
+           | guard
+           | switch
+    '''
+    p[0] = p[1]
+
+
+def p_if(p):
+    '''
+    if : ifElseIf
+       | ifElseIf elseEnd
+    '''
+    p[0] = p[1]
+
+
+def p_ifElseIf(p):
+    '''
+    ifElseIf : IF expression blockBody
+             | ifElseIf ELSE ifElseIf
+    '''
+    p[0] = p[1]
+
+
+def p_elseEnd(p):
+    '''
+    elseEnd : ELSE blockBody
+    '''
+    p[0] = p[1]
+
+
+def p_guard(p):
+    '''
+    guard : GUARD expression elseEnd
+    '''
+    p[0] = p[1]
+
+
+def p_switch(p):
+    '''
+    switch : SWITCH expression CURLY_L switchBody
+    '''
+    p[0] = p[1]
+
+
+def p_switchBody(p):
+    '''
+    switchBody : switchBodyMain CURLY_R
+               | switchBodyMain caseBodyDefault CURLY_R
+    '''
+    p[0] = p[1]
+
+
+def p_switchBodyMain(p):
+    '''
+    switchBodyMain : caseBody
+                   | switchBodyMain caseBody
+    '''
+    p[0] = p[1]
+
+
+def p_caseBody(p):
+    '''
+    caseBody : caseHeader COLON statement
+             | caseBody statement
+    '''
+    p[0] = p[1]
+
+
+def p_caseHeader(p):
+    '''
+    caseHeader : CASE caseCondition
+               | CASE caseCondition WHERE expression
+    '''
+    p[0] = p[1]
+
+
+def p_caseBodyDefault(p):
+    '''
+    caseBodyDefault : DEFAULT COLON statement
+                    | caseBodyDefault statement
+    '''
+    p[0] = p[1]
+
+
+def p_caseCondition(p):
+    '''
+    caseCondition : expression
+                  | caseCondition COMMA expression
+    '''
+    p[0] = p[1]
+
+
+'''
         CLASSES
 '''
 
@@ -209,7 +367,7 @@ def p_class(p):
 def p_classDeclaration(p):
     '''
     classDeclaration : CLASS IDENTIFIER
-                     | CLASS IDENTIFIER COLON type
+                     | CLASS IDENTIFIER COLON TYPE
     '''
     p[0] = p[1]
 
@@ -234,13 +392,14 @@ def p_classItem(p):
     classItem : classAttribute
               | classInit
               | classDeinit
+              | variableDeclaration
     '''
     p[0] = p[1]
 
 
 def p_classAttribute(p):
     '''
-    classAttribute : VAR IDENTIFIER COLON type blockBody
+    classAttribute : VAR IDENTIFIER COLON TYPE blockBody
     '''
     p[0] = p[1]
 
@@ -262,14 +421,14 @@ def p_classDeinit(p):
 def p_ConvenienceInit(p):
     '''
     convenienceInit : CONVENIENCE
-                    | e
+                    | epsilon
     '''
     p[0] = p[1]
 
 
 def p_returnType(p):
     '''
-    returnType : ARROW type
+    returnType : ARROW TYPE
                 | epsilon
     '''
     p[0] = p[1]
@@ -356,7 +515,7 @@ def p_comparison(p):
 
 def p_logicalConjugation(p):
     '''
-    logicalConjugation  : default
+    logicalConjugation  : DEFAULT
                         | logicalConjugation logicalConjugationLevelOp default
     '''
     p[0] = p[1]
@@ -364,61 +523,61 @@ def p_logicalConjugation(p):
 
 def p_default(p):
     '''
-    Default : Ternary
-            | Default DefaultLevelOp Ternary
+    default : ternary
+            | default defaultLevelOp ternary
     '''
     p[0] = p[1]
 
 
 def p_ternary(p):
     '''
-    Ternary : Assignment
-            | Ternary TernaryLevelOp Assignment
+    ternary : assignment
+            | ternary ternaryLevelOp assignment
     '''
     p[0] = p[1]
 
 
 def p_assignment(p):
     '''
-    Assignment  : Term
-                | Assignment AssignmentLevelOp Term
+    assignment  : term
+                | assignment assignmentLevelOp term
     '''
     p[0] = p[1]
 
 
 def p_term(p):
     '''
-    Term : Function
-         | Variable
-         | Constant
-         | INTEGER_LITERAL
-         | DOUBLE_LITERAL
+    term : FUNCTION
+         | VARIABLE
+         | CONSTANT
+         | INT_LITERAL
+         | FLOAT_LITERAL
          | STRING_LITERAL
          | NIL_LITERAL
          | BOOLEAN_LITERAL
          | EXPRESSION_LITERAL
-         | BRACKET_L Expression BRACKET_R
-         | ExpressionOperator Expression
+         | BRACKET_L expression BRACKET_R
+         | expressionOperator expression
     '''
     p[0] = p[1]
 
 
-def p_prefixOperator(p):
-    '''
-    PrefixOperator  : EXCLAMATION_MARK
-                    | BITWISE
-                    | UNARY_PLUS
-                    | UNARY_MINUS
-                    | HALF_OPEN_RANGE
-                    | RANGE
-                    | DOT
-    '''
-    p[0] = p[1]
+# def p_prefixOperator(p):
+#    '''
+#    prefixOperator  : EXCLAMATION_MARK
+#                    | BITWISE
+#                    | UNARY_PLUS
+#                    | UNARY_MINUS
+#                    | HALF_OPEN_RANGE
+#                    | RANGE_OPERATOR
+#                    | PERIOD
+#    '''
+#    p[0] = p[1]
 
 
 def p_postfixOperator(p):
     '''
-    PostfixOperator : RANGE
+    postfixOperator : RANGE_OPERATOR
     '''
     p[0] = p[1]
 
@@ -426,8 +585,6 @@ def p_postfixOperator(p):
 '''
     ERROR
     HANDLING
-
-
 '''
 
 
@@ -470,32 +627,102 @@ def p_catchBody(p):
 '''
 
 
+def p_sourceFile(p):
+    '''
+    sourceFile : statements
+    '''
+    p[0] = p[1]
+
+
+def p_import(p):
+    '''
+    import : IMPORT IDENTIFIER
+           | IMPORT importType IDENTIFIER PERIOD IDENTIFIER
+           | import PERIOD IDENTIFIER
+    '''
+    p[0] = p[1]
+
+
+def p_importType(p):
+    '''
+    importType : TYPEALIAS
+               | STRUCT
+               | CLASS
+               | ENUM
+               | PROTOCOL
+               | LET
+               | VAR
+               | FUNC
+    '''
+    p[0] = p[1]
+
+
+def p_statements(p):
+    '''
+    statements : statement delimiter
+               | statements statement delimiter
+    '''
+    p[0] = p[1]
+
+
+def p_statement(p):
+    '''
+    statement : loop
+              | branch
+              | import
+              | functionDeclaration
+              | functionCall
+              | variableDeclaration
+              | constantDefinition
+              | variableAssignment
+              | returnStatement
+              | classDeclaration
+    '''
+    p[0] = p[1]
+
+
+def p_delimiter(p):
+    '''
+    delimiter : SEMICOLON
+              | epsilon
+    '''
+    p[0] = p[1]
+
+
+def p_returnStatement(p):
+    '''
+    returnStatement : RETURN expression
+    '''
+    p[0] = p[1]
+
+
 def p_type(p):
     '''
-    type : IMPORT
+    type : TYPE
     '''
-    p[0] = {'type': p[0]}
+    p[0] = p[1]
 
 
 def p_expression(p):
     '''
-    expression  : BitwiseShift
-                | PrefixOperator BitwiseShift
-                | BitwiseShift PostfixOperator
+    expression  : bitwiseShift
+                | PREFIX_OPERATOR bitwiseShift
+                | bitwiseShift postfixOperator
     '''
     p[0] = p[1]
 
 
 def p_blockBodyMain(p):
     '''
-    BlockBodyMain : CURLY_L BlockBody
+    blockBodyMain : CURLY_L
+                  | blockBodyMain statement
     '''
     p[0] = p[1]
 
 
 def p_blockBody(p):
     '''
-    BlockBody : BlockBodyMain CURLY_R
+    blockBody : blockBodyMain CURLY_R
     '''
     p[0] = p[1]
 
@@ -504,15 +731,22 @@ def p_blockBody(p):
         TECHNICAL
 '''
 
+
 def p_epsilon(p):
     'epsilon :'
     pass
 
-yacc.yacc(start="constantAssignment")
 
-s = '''
-let
-x:
-import = inout
-'''
+def p_assignable(p):
+    '''
+    assignable : FUNCTION
+               | expression
+               | VARIABLE
+               | CONSTANT
+    '''
+
+
+yacc.yacc(start="sourceFile")
+
+s = '''import x'''
 yacc.parse(s)

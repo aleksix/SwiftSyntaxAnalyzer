@@ -39,18 +39,18 @@ for c in range(len(expression_literals)):
     expression_literals[c] = "EXPRESSION_LITERAL_" + expression_literals[c][1:].upper()
 
 # All of the tokens
-tokens = keywords + context_keywords + expression_literals + ["IDENTIFIER", "STRING_LITERAL", "INT_LITERAL",
-                                                              "FLOAT_LITERAL",
-                                                              "BOOLEAN_LITERAL", "NIL_LITERAL",
-                                                              "BRACKET_L", "BRACKET_R", "CURLY_L", "CURLY_R",
-                                                              "SQUARE_L", "SQUARE_R", "SEMICOLON", "COLON", "COMMA",
-                                                              "PERIOD", "AT", "POUND", "POSTFIX_QUESTION", "PREFIX_DOT",
-                                                              "AMPERSAND", "UNDERSCORE", "GREATER_THAN", "LESS_THAN",
-                                                              "ARROW", "EQUAL", "RANGE_OPERATOR",
-                                                              "BACKTICK", "QUESTION_MARK",
-                                                              "EXCLAMATION_MARK", "ERROR", "PREFIX_AMPERSAND",
-                                                              "BINARY_OPERATOR", "PREFIX_OPERATOR", "POSTFIX_OPERATOR",
-                                                              "TYPE"]
+tokens = keywords + context_keywords + ["IDENTIFIER", "STRING_LITERAL", "INT_LITERAL",
+                                        "FLOAT_LITERAL",
+                                        "BOOLEAN_LITERAL", "NIL_LITERAL",
+                                        "BRACKET_L", "BRACKET_R", "CURLY_L", "CURLY_R",
+                                        "SQUARE_L", "SQUARE_R", "SEMICOLON", "COLON", "COMMA",
+                                        "PERIOD", "AT", "POUND", "POSTFIX_QUESTION", "PREFIX_DOT",
+                                        "AMPERSAND", "UNDERSCORE", "GREATER_THAN", "LESS_THAN",
+                                        "ARROW", "EQUAL", "RANGE_OPERATOR",
+                                        "BACKTICK", "QUESTION_MARK",
+                                        "EXCLAMATION_MARK", "ERROR", "PREFIX_AMPERSAND",
+                                        "BINARY_OPERATOR", "PREFIX_OPERATOR", "POSTFIX_OPERATOR",
+                                        "TYPE", "FUNCTION", "VARIABLE", "CONSTANT", "EXPRESSION_LITERAL"]
 
 t_ignore = ' \t'
 
@@ -81,7 +81,7 @@ identifier = r"""('?)([\u0041-\u005A]|[\u0061-\u007A]|[\u00B2-\u00B5]|[\u00B7-\u
 \U000E0000-\U000EFFFD]|\u00A8|\u00AA|\u00A8|\u00AA|\u005F|\u00AD|\u00AF|\u2054)|[\u0030-\u0039]|[\u0300-\u036F]|[
 \u1DC0-\u1DFF]|[\u20D0-\u20FF]|[\uFE20-\uFE2F])*('?)"""
 
-expression_literal = r"""\#(keyPath|line|selector|file|column|function|dsohandle|sourceLocation|warning|error|if|else
+t_EXPRESSION_LITERAL = r"""\#(keyPath|line|selector|file|column|function|dsohandle|sourceLocation|warning|error|if|else
 |elseif|endif|available|fileLiteral|imageLiteral|colorLiteral)"""
 
 operator = r"""([\u00A1-\u00A7]|[\u2020-\u2027]|[\u2030-\u203E]|[\u2041-\u2053]|[\u2055-\u205E]|[\u2190-\u23FF]|[
@@ -116,12 +116,18 @@ def t_IDENTIFIER(t):
     if t.type == "IDENTIFIER":
         if type_lookup(t.value):
             t.type = "TYPE"
+        elif function_lookup(t.value):
+            t.type = "FUNCTION"
+        elif variable_lookup(t.value):
+            t.type = "VARIABLE"
+        elif constant_lookup(t.value):
+            t.type = "CONSTANT"
     return t
 
 
-@TOKEN(expression_literal)
-def t_EXPRESSION_LITERAL(t):
-    t.type = expression_literals_map[t.value]
+# @TOKEN(expression_literal)
+# def t_EXPRESSION_LITERAL(t):
+#    t.type = expression_literals_map[t.value]
 
 
 @TOKEN(operator)
@@ -207,6 +213,10 @@ def t_newline(t):
 
 lexer = None
 type_lookup = None
+function_lookup = None
+variable_lookup = None
+constant_lookup = None
+
 
 def build(**kwargs):
     lexer = lex.lex(**kwargs)
