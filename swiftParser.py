@@ -673,7 +673,7 @@ def p_statement(p):
               | functionDeclaration
               | functionCall
               | variableDeclaration
-              | constantDefinition
+              | constantDeclaration
               | variableAssignment
               | returnStatement
               | classDeclaration
