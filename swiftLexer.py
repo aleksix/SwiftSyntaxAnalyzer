@@ -20,6 +20,8 @@ expression_literals = ["#keyPath", "#line", "#selector", "#file",
                        "#error", "#if", "#else", "#elseif", "#endif",
                        "#available", "#fileLiteral", "#imageLiteral", "#colorLiteral"]
 
+operators = []
+
 
 def generate_token_map(literals):
     map = {}
@@ -38,19 +40,22 @@ for c in range(len(expression_literals)):
     expression_literals_map[expression_literals[c]] = "EXPRESSION_LITERAL_" + expression_literals[c][1:].upper()
     expression_literals[c] = "EXPRESSION_LITERAL_" + expression_literals[c][1:].upper()
 
+operator_groups = ["Assignment", "Ternary", "Default", "LogicalConjugation", "Comparison", "NilCoalescing", "Casting",
+                   "RangeFormation", "Addition", "Multiplication", "BitwiseShift"]
+
+operator_groups = [og.upper() + "LEVELOP" for og in operator_groups]
+
 # All of the tokens
-tokens = keywords + context_keywords + ["IDENTIFIER", "STRING_LITERAL", "INT_LITERAL",
-                                        "FLOAT_LITERAL",
-                                        "BOOLEAN_LITERAL", "NIL_LITERAL",
-                                        "BRACKET_L", "BRACKET_R", "CURLY_L", "CURLY_R",
-                                        "SQUARE_L", "SQUARE_R", "SEMICOLON", "COLON", "COMMA",
-                                        "PERIOD", "AT", "POUND", "POSTFIX_QUESTION", "PREFIX_DOT",
-                                        "AMPERSAND", "UNDERSCORE", "GREATER_THAN", "LESS_THAN",
-                                        "ARROW", "EQUAL", "RANGE_OPERATOR",
-                                        "BACKTICK", "QUESTION_MARK",
-                                        "EXCLAMATION_MARK", "ERROR", "PREFIX_AMPERSAND",
-                                        "BINARY_OPERATOR", "PREFIX_OPERATOR", "POSTFIX_OPERATOR",
-                                        "TYPE", "FUNCTION", "VARIABLE", "CONSTANT", "EXPRESSION_LITERAL"]
+tokens = keywords + context_keywords + operator_groups + ["IDENTIFIER", "STRING_LITERAL", "INT_LITERAL",
+                                                          "FLOAT_LITERAL", "BOOLEAN_LITERAL", "NIL_LITERAL",
+                                                          "BRACKET_L", "BRACKET_R", "CURLY_L", "CURLY_R", "SQUARE_L",
+                                                          "SQUARE_R", "SEMICOLON", "COLON", "COMMA", "PERIOD", "AT",
+                                                          "POUND", "POSTFIX_QUESTION", "PREFIX_DOT", "AMPERSAND",
+                                                          "UNDERSCORE", "GREATER_THAN", "LESS_THAN", "ARROW", "EQUAL",
+                                                          "RANGE_OPERATOR", "BACKTICK", "QUESTION_MARK",
+                                                          "EXCLAMATION_MARK", "ERROR", "PREFIX_AMPERSAND",
+                                                          "PREFIX_OPERATOR", "POSTFIX_OPERATOR", "TYPE", "FUNCTION",
+                                                          "VARIABLE", "CONSTANT", "EXPRESSION_LITERAL"]
 
 t_ignore = ' \t'
 
@@ -192,12 +197,14 @@ def t_OPERATOR(t):
 
     # No match here, get the correct type of operator
     if t.type == "OPERATOR":
-        if prefix == postfix:
-            t.type = "BINARY_OPERATOR"
-        elif prefix:
-            t.type = "PREFIX_OPERATOR"
-        else:
-            t.type = "POSTFIX_OPERATOR"
+        op = operator_lookup(t.value)
+        if op != "OP":
+            if prefix == postfix:
+                t.type = op.infix.upper() + "LEVELOP"
+            elif prefix:
+                t.type = "PREFIX_OPERATOR"
+            else:
+                t.type = "POSTFIX_OPERATOR"
     return t
 
 
@@ -216,6 +223,7 @@ type_lookup = None
 function_lookup = None
 variable_lookup = None
 constant_lookup = None
+operator_lookup = None
 
 
 def build(**kwargs):

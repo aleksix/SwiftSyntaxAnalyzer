@@ -4,10 +4,22 @@ import swiftLexer
 tokens = swiftLexer.tokens
 
 # symbol tables
+# TODO : Fill the initial values for the tables
 types = {"Int": 1}
 functions = {"print": 1}
 variables = {"x": 1}
 constants = {"y": 1}
+
+# Explanation:
+# The lookup is conducted by the operator itself. We can have an operator in 3 different types :
+#  prefix, infix and postfix
+# For prefix and postfix, we only care that the operator exists in such a state.
+# But for infix we need to know the precedence of the operator
+# Thus, the structure is {"operator" : {"prefix":1, "infix":"precedenceGroup", "postfix":1}} - best case
+
+# I don't think we can quite use the PLY built-in precedence table since, best-case, operators can get added dynamically
+# I know nothing about dynamic rule generation in PLY, so this version will have to do
+operators = {"+": {"postfix": 1, "infix": "Addition"}}
 
 
 def type_lookup(identifier):
@@ -26,8 +38,15 @@ def constant_lookup(identifier):
     return constants.get(identifier, "ID") != "ID"
 
 
+def operator_lookup(operator):
+    return operators.get(operator, "OP")
+
+
 swiftLexer.function_lookup = function_lookup
 swiftLexer.type_lookup = type_lookup
+swiftLexer.variable_lookup = variable_lookup
+swiftLexer.constant_lookup = constant_lookup
+swiftLexer.operator_lookup = operator_lookup
 
 swiftLexer.build()
 
@@ -744,6 +763,7 @@ def p_assignable(p):
                | VARIABLE
                | CONSTANT
     '''
+    p[0] = p[1]
 
 
 yacc.yacc(start="sourceFile")
