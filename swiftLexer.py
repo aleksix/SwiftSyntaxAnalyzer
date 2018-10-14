@@ -105,8 +105,8 @@ def t_OPERATOR(t):
     postfix = False
     if t.lexpos > 0:
         prefix = lexdata[t.lexpos - 1].isspace()
-    if t.lexpos < len(lexdata) - 1:
-        postfix = lexdata[t.lexpos + 1].isspace()
+    if t.lexpos + len(t.value) < len(lexdata):
+        postfix = lexdata[t.lexpos + len(t.value)].isspace()
 
     # All the values below might have special meaning, hence the distinction
     if t.value == '(':
@@ -174,6 +174,9 @@ def t_OPERATOR(t):
 def t_error(t):
     print("Illegal/ignored value '%s'" % t.value)
     t.lexer.skip(1)
+
+
+operator_lookup = None
 
 
 class LexerWrap:

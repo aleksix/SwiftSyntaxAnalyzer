@@ -12,53 +12,60 @@ tokens = swiftLexer.tokens
 
 # I don't think we can quite use the PLY built-in precedence table since, best-case, operators can get added dynamically
 # I know nothing about dynamic rule generation in PLY, so this version will have to do
-operatorsInfo = [{"!": {"prefix": 1},
-                  "~": {"prefix": 1},
-                  "+": {"prefix": 1, "infix": "Addition"},
-                  "-": {"prefix": 1, "infix": "Addition"},
-                  "..<": {"prefix": 1, "infix": "RangeFormation"},
-                  "...": {"prefix": 1, "infix": "RangeFormation", "postfix": 1},
-                  "<<": {"infix": "BitwiseShift"},
-                  ">>": {"infix": "BitwiseShift"},
-                  "*": {"infix": "Multiplication"},
-                  "/": {"infix": "Multiplication"},
-                  "%": {"infix": "Multiplication"},
-                  "&*": {"infix": "Multiplication"},
-                  "&": {"infix": "Multiplication"},
-                  "&+": {"infix": "Addition"},
-                  "&-": {"infix": "Addition"},
-                  "|": {"infix": "Addition"},
-                  "^": {"infix": "Addition"},
-                  "is": {"infix": "Casting"},
-                  "as": {"infix": "Casting"},
-                  "as?": {"infix": "Casting"},
-                  "and": {"infix": "Casting"},
-                  "as!": {"infix": "Casting"},
-                  "??": {"infix": "NilCoalescing"},
-                  "<": {"infix": "Comparison"},
-                  "<=": {"infix": "Comparison"},
-                  ">": {"infix": "Comparison"},
-                  ">=": {"infix": "Comparison"},
-                  "==": {"infix": "Comparison"},
-                  "!=": {"infix": "Comparison"},
-                  "===": {"infix": "Comparison"},
-                  "!===": {"infix": "Comparison"},
-                  "~=": {"infix": "Comparison"},
-                  "&&": {"infix": "LogicalConjunction"},
-                  "||": {"infix": "LogicalDisjunction"},
-                  "?:": {"infix": "Ternary"},
-                  "=": {"infix": "Assignment"},
-                  "*=": {"infix": "Assignment"},
-                  "/=": {"infix": "Assignment"},
-                  "%=": {"infix": "Assignment"},
-                  "+=": {"infix": "Assignment"},
-                  "-=": {"infix": "Assignment"},
-                  "<<=": {"infix": "Assignment"},
-                  ">>=": {"infix": "Assignment"},
-                  "&=": {"infix": "Assignment"},
-                  "|=": {"infix": "Assignment"},
-                  "^=": {"infix": "Assignment"},
-                  }]
+operatorsInfo = {"!": {"prefix": 1},
+                 "~": {"prefix": 1},
+                 "+": {"prefix": 1, "infix": "Addition"},
+                 "-": {"prefix": 1, "infix": "Addition"},
+                 "..<": {"prefix": 1, "infix": "RangeFormation"},
+                 "...": {"prefix": 1, "infix": "RangeFormation", "postfix": 1},
+                 "<<": {"infix": "BitwiseShift"},
+                 ">>": {"infix": "BitwiseShift"},
+                 "*": {"infix": "Multiplication"},
+                 "/": {"infix": "Multiplication"},
+                 "%": {"infix": "Multiplication"},
+                 "&*": {"infix": "Multiplication"},
+                 "&": {"infix": "Multiplication"},
+                 "&+": {"infix": "Addition"},
+                 "&-": {"infix": "Addition"},
+                 "|": {"infix": "Addition"},
+                 "^": {"infix": "Addition"},
+                 "is": {"infix": "Casting"},
+                 "as": {"infix": "Casting"},
+                 "as?": {"infix": "Casting"},
+                 "and": {"infix": "Casting"},
+                 "as!": {"infix": "Casting"},
+                 "??": {"infix": "NilCoalescing"},
+                 "<": {"infix": "Comparison"},
+                 "<=": {"infix": "Comparison"},
+                 ">": {"infix": "Comparison"},
+                 ">=": {"infix": "Comparison"},
+                 "==": {"infix": "Comparison"},
+                 "!=": {"infix": "Comparison"},
+                 "===": {"infix": "Comparison"},
+                 "!===": {"infix": "Comparison"},
+                 "~=": {"infix": "Comparison"},
+                 "&&": {"infix": "LogicalConjunction"},
+                 "||": {"infix": "LogicalDisjunction"},
+                 "?:": {"infix": "Ternary"},
+                 "=": {"infix": "Assignment"},
+                 "*=": {"infix": "Assignment"},
+                 "/=": {"infix": "Assignment"},
+                 "%=": {"infix": "Assignment"},
+                 "+=": {"infix": "Assignment"},
+                 "-=": {"infix": "Assignment"},
+                 "<<=": {"infix": "Assignment"},
+                 ">>=": {"infix": "Assignment"},
+                 "&=": {"infix": "Assignment"},
+                 "|=": {"infix": "Assignment"},
+                 "^=": {"infix": "Assignment"},
+                 }
+
+
+def operator_lookup(opeartor):
+    return operatorsInfo.get(opeartor, "ID")
+
+
+swiftLexer.operator_lookup = operator_lookup
 
 # lexer = swiftLexer.build()
 
@@ -733,38 +740,35 @@ def p_typealias(p):
 
 def p_type(p):
     '''
-    type : normalType
-         | normalType QUESTION_MARK
+    type : IDENTIFIER
+         | IDENTIFIER QUESTION_MARK
     '''
     p[0] = p[1]
     pass
 
-def p_normalType(p):
-    '''
-    normalType : IDENTIFIER
-    '''
 
 def p_expression(p):
     '''
     expression  : bitwiseShift
                 | PREFIX_OPERATOR bitwiseShift
                 | bitwiseShift postfixOperator
-    '''
-    p[0] = p[1]
-
-
-def p_blockBodyMain(p):
-    '''
-    blockBodyMain : statement
-                  | blockBodyMain statement
+                | assignable
     '''
     p[0] = p[1]
 
 
 def p_blockBody(p):
     '''
-    blockBody : CURLY_L blockBodyMain CURLY_R
+    blockBody : CURLY_L statements CURLY_R
               | CURLY_L CURLY_R
+    '''
+    p[0] = p[1]
+
+
+def p_idlist(p):
+    '''
+    idlist : IDENTIFIER
+           | idlist COMMA IDENTIFIER
     '''
     p[0] = p[1]
 
@@ -784,6 +788,15 @@ def p_assignable(p):
     assignable : expression
                | literal
                | IDENTIFIER
+               | assignable trailer
+    '''
+    p[0] = p[1]
+
+
+def p_trailer(p):
+    '''
+    trailer : SQUARE_L idlist SQUARE_R
+            | trailer trailer
     '''
     p[0] = p[1]
 
@@ -812,10 +825,40 @@ yacc.yacc(start="sourceFile")
 
 lexer = swiftLexer.LexerWrap()
 
-s = ''' class c {
-    init( ) { 
-        let x = 6
-        return x 
+s = '''if keys[index] == key {
+      if isLeaf {
+        keys.remove(at: index)
+        values.remove(at: index)
+        owner.numberOfKeys -= 1
+      } else {
+        let predecessor = children![index].inorderPredecessor
+        keys[index] = predecessor.keys.last!
+        values[index] = predecessor.values.last!
+        children![index].remove(keys[index])
+        if children![index].numberOfKeys < owner.order {
+          fix(childWithTooFewKeys: children![index], atIndex: index)
+        }
+      }
+    } else if key < keys[index] {
+      // We should go to left child...
+      if let leftChild = children?[index] {
+        leftChild.remove(key)
+        if leftChild.numberOfKeys < owner.order {
+          fix(childWithTooFewKeys: leftChild, atIndex: index)
+        }
+      } else {
+        print("The key:\(key) is not in the tree.")
+      }
+    } else {
+      // We should go to right child...
+      if let rightChild = children?[(index + 1)] {
+        rightChild.remove(key)
+        if rightChild.numberOfKeys < owner.order {
+          fix(childWithTooFewKeys: rightChild, atIndex: (index + 1))
+        }
+      } else {
+        print("The key:\(key) is not in the tree")
+      }
     }
 }'''
 yacc.parse(s, lexer=lexer)
