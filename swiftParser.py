@@ -252,7 +252,7 @@ def p_functionAssignment(p):
 
 def p_functionCall(p):
     '''    
-    functionCall : IDENTIFIER BRACKET_L callArgumentList BRACKET_R
+    functionCall : assignable BRACKET_L callArgumentList BRACKET_R
     '''
     p[0] = buildTree(p[1:])
 
@@ -712,6 +712,7 @@ def p_statement(p):
               | returnStatement
               | class
               | do
+              | expression
     '''
     p[0] = buildTree(p[1:])
 
@@ -788,6 +789,7 @@ def p_assignable(p):
     assignable : literal
                | IDENTIFIER
                | assignable trailer
+               | assignable PERIOD IDENTIFIER
     '''
     p[0] = buildTree(p[1:])
 
