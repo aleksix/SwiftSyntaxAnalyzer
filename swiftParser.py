@@ -5,8 +5,10 @@ tokens = swiftLexer.tokens
 
 # symbol tables
 # TODO : Fill the initial values for the tables
-types = {"Bool": 1, "Int": 1, "Int8": 1, "UInt": 1, "Float": 1, "Double": 1, "Character": 1, "String": 1}
-functions = {"print": 1, "abs": 1}
+types = {"Bool": 1, "Int": 1, "Int8": 1, "Int16": 1, "Int32": 1, "Int64": 1, "UInt": 1, "UInt8": 1, "UInt16": 1,
+         "UInt32": 1, "UInt64": 1, "Float": 1, "Float80": 1, "Double": 1, "Character": 1, "String": 1,
+         "Equatable": 1, "Comparable": 1}
+functions = {"print": 1, "abs": 1, "min": 1, "max": 1, "filter": 1, "reduce": 1}
 variables = {"x": 1}
 constants = {"y": 1}
 
