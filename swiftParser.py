@@ -1,5 +1,6 @@
 import ply.yacc as yacc
 import swiftLexer
+import json
 
 tokens = swiftLexer.tokens
 
@@ -79,8 +80,7 @@ def p_constantDeclarationList(p):
     constantDeclarationList : LET IDENTIFIER
                             | constantDeclarationList COMMA IDENTIFIER
     '''
-    p[0] = buildTree(p[1:])
-    pass
+    p[0] = buildTree("constantDeclarationList", p[1:])
 
 
 def p_constantDeclaration(p):
@@ -88,14 +88,14 @@ def p_constantDeclaration(p):
     constantDeclaration : constantDeclarationList
                         | constantDeclarationList COLON type
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("constantDeclaration", p[1:])
 
 
 def p_constantAssignment(p):
     '''
     constantAssignment : constantDeclaration EQUAL expression
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = {"constant": p[1], "value": p[3]}
 
 
 '''
@@ -110,18 +110,14 @@ def p_variableModifiers(p):
                       | FILEPRIVATE
                       | epsilon
     '''
-    p[0] = buildTree(p[1:])
-    if buildTree(p[1:]) is None:
-        p[0] = ''
-    pass
+    p[0] = p[1]
 
 
 def p_variableDeclarationStart(p):
     '''
     variableDeclarationStart : variableModifiers VAR IDENTIFIER
     '''
-    p[0] = buildTree(p[1:])
-    pass
+    p[0] = {"modifier": p[1], "variable": p[3]}
 
 
 def p_variableDeclaration(p):
@@ -131,8 +127,7 @@ def p_variableDeclaration(p):
                         | variableDeclarationStart variableAssignment
                         | variableDeclarationStart COLON type variableAssignment
     '''
-    p[0] = buildTree(p[1:])
-    pass
+    p[0] = buildTree("variableDeclaration", p[1:])
 
 
 def p_variableDeclarationList(p):
@@ -140,15 +135,14 @@ def p_variableDeclarationList(p):
     variableDeclarationList : variableDeclarationStart
                             | variableDeclarationList COMMA IDENTIFIER
     '''
-    p[0] = buildTree(p[1:])
-    pass
+    p[0] = buildTree("declarationList", p[1:])
 
 
 def p_variableAssignment(p):
     '''
     variableAssignment : EQUAL expression
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = p[2]
 
 
 '''
@@ -158,9 +152,10 @@ def p_variableAssignment(p):
 
 def p_functionDeclaration(p):
     '''
-    functionDeclaration : functionModifiers FUNC IDENTIFIER BRACKET_L argumentList BRACKET_R throws returnType functionAssignment blockBody
+    functionDeclaration : functionModifiers FUNC IDENTIFIER BRACKET_L argumentList BRACKET_R throws returnType blockBody
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = {"modifier": p[1], "function": p[3], "arguments": p[5], "throws": p[7],
+            "returns": p[8], "body": p[9]}
 
 
 def p_returnType(p):
@@ -168,7 +163,8 @@ def p_returnType(p):
     returnType : ARROW type
                 | epsilon
     '''
-    p[0] = buildTree(p[1:])
+    if p[1] is not None:
+        p[0] = p[2]
 
 
 def p_functionModifiers(p):
@@ -178,8 +174,7 @@ def p_functionModifiers(p):
                         | PRIVATE
                         | epsilon
     '''
-    p[0] = buildTree(p[1:])
-    pass
+    p[0] = p[1]
 
 
 def p_argumentList(p):
@@ -188,8 +183,8 @@ def p_argumentList(p):
                  | argumentList COMMA argumentDeclaration
                  | epsilon
     '''
-    p[0] = buildTree(p[1:])
-    pass
+    if p[1] is not None:
+        p[0] = {"arguments": p[1:]}
 
 
 def p_argumentDeclaration(p):
@@ -197,14 +192,25 @@ def p_argumentDeclaration(p):
     argumentDeclaration : argumentDescription
                         | argumentLabel argumentDescription
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = {}
+    if len(p) == 3:
+        p[0] = p[2]
+        p[0]["label"] = p[1]
+    else:
+        p[0] = p[1]
 
 
 def p_argumentDescription(p):
     '''
     argumentDescription : IDENTIFIER COLON argumentInout type argumentType
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = {"name": p[1]}
+    if p[3] is not None:
+        p[0]["inout"] = p[3]
+    p[0]["type"] = p[4]
+    if p[5] is not None:
+        for key in p[5]:
+            p[0][key] = p[5][key]
 
 
 def p_argumentInout(p):
@@ -212,7 +218,8 @@ def p_argumentInout(p):
     argumentInout   : INOUT
                     | epsilon
     '''
-    p[0] = buildTree(p[1:])
+    if p[1] is not None:
+        p[0] = True
 
 
 def p_argumentType(p):
@@ -221,7 +228,10 @@ def p_argumentType(p):
                 | EQUAL expression
                 | epsilon
     '''
-    p[0] = buildTree(p[1:])
+    if p[1] == "...":
+        p[0] = {"variadic": True}
+    elif p[1] == "=":
+        p[0] = {"defaultValue": p[2]}
 
 
 def p_argumentLabel(p):
@@ -229,7 +239,8 @@ def p_argumentLabel(p):
     argumentLabel : IDENTIFIER
                  | UNDERSCORE
     '''
-    p[0] = buildTree(p[1:])
+    if p[1] != "_":
+        p[0] = p[1]
 
 
 def p_throws(p):
@@ -237,22 +248,16 @@ def p_throws(p):
     throws  : THROWS
             | epsilon
     '''
-    p[0] = buildTree(p[1:])
-
-
-def p_functionAssignment(p):
-    '''
-    functionAssignment  : EQUAL IDENTIFIER
-                        | epsilon
-    '''
-    p[0] = buildTree(p[1:])
+    p[0] = False
+    if p[1] is not None:
+        p[0] = True
 
 
 def p_functionCall(p):
     '''    
     functionCall : assignable BRACKET_L callArgumentList BRACKET_R
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("functionCall", p[1:])
 
 
 def p_callArgumentList(p):
@@ -260,7 +265,7 @@ def p_callArgumentList(p):
     callArgumentList : callArgument
                      | callArgumentList COMMA callArgument
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("CallArgumentList", p[1:])
 
 
 def p_callArgument(p):
@@ -269,7 +274,12 @@ def p_callArgument(p):
                  | callArgumentReference callArgumentLabel expression
     '''
     'The first part is a hacky one - PLY gets confused by consecutive IDENTIFIER from different rules'
-    p[0] = buildTree(p[1:])
+    p[0] = {"referenced": p[1] is not None}
+    if len(p) == 4:
+        p[0]["label"] = p[2]
+        p[0]["callArgument"] = p[3]
+    else:
+        p[0]["callArgument"] = p[2]
 
 
 def p_callArgumentReference(p):
@@ -277,7 +287,7 @@ def p_callArgumentReference(p):
     callArgumentReference : AMPERSAND
                           | epsilon
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("isReferenced", p[1:])
 
 
 def p_callArgumentLabel(p):
@@ -285,7 +295,7 @@ def p_callArgumentLabel(p):
     callArgumentLabel : IDENTIFIER COLON
                       | epsilon
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("callArgumentLabel", p[1:])
 
 
 '''
@@ -299,7 +309,7 @@ def p_loop(p):
          | loopLabel whileLoop
          | loopLabel repeatLoop
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("loop", p[1:])
 
 
 def p_loopLabel(p):
@@ -307,28 +317,28 @@ def p_loopLabel(p):
     loopLabel : IDENTIFIER COLON
               | epsilon
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("loopLabel", p[1:])
 
 
 def p_forLoop(p):
     '''
     forLoop : FOR IDENTIFIER IN expression blockBody
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("for", p[1:])
 
 
 def p_whileLoop(p):
     '''
     whileLoop : WHILE expression blockBody
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("while", p[1:])
 
 
 def p_repeatLoop(p):
     '''
     repeatLoop : REPEAT blockBody WHILE expression
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("repeat", p[1:])
 
 
 '''
@@ -342,7 +352,7 @@ def p_branch(p):
            | guard
            | switch
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("branch", p[1:])
 
 
 def p_if(p):
@@ -350,8 +360,7 @@ def p_if(p):
     if : ifElseIf
        | ifElseIf elseEnd
     '''
-    p[0] = buildTree(p[1:])
-    pass
+    p[0] = buildTree("if", p[1:])
 
 
 def p_ifElseIf(p):
@@ -360,30 +369,28 @@ def p_ifElseIf(p):
              | IF constantAssignment blockBody
              | ifElseIf ELSE if
     '''
-    p[0] = buildTree(p[1:])
-    pass
+    p[0] = buildTree("ifElse", p[1:])
 
 
 def p_elseEnd(p):
     '''
     elseEnd : ELSE blockBody
     '''
-    p[0] = buildTree(p[1:])
-    pass
+    p[0] = buildTree("else", p[1:])
 
 
 def p_guard(p):
     '''
     guard : GUARD expression elseEnd
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("guard", p[1:])
 
 
 def p_switch(p):
     '''
     switch : SWITCH expression CURLY_L switchBody
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("switch", p[1:])
 
 
 def p_switchBody(p):
@@ -391,7 +398,7 @@ def p_switchBody(p):
     switchBody : switchBodyMain CURLY_R
                | switchBodyMain caseBodyDefault CURLY_R
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("switchBody", p[1:])
 
 
 def p_switchBodyMain(p):
@@ -399,7 +406,7 @@ def p_switchBodyMain(p):
     switchBodyMain : caseBody
                    | switchBodyMain caseBody
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = p[1:]
 
 
 def p_caseBody(p):
@@ -407,7 +414,7 @@ def p_caseBody(p):
     caseBody : caseHeader COLON statement
              | caseBody statement
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("caseBody", p[1:])
 
 
 def p_caseHeader(p):
@@ -415,7 +422,7 @@ def p_caseHeader(p):
     caseHeader : CASE caseCondition
                | CASE caseCondition WHERE expression
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("caseHeader", p[1:])
 
 
 def p_caseBodyDefault(p):
@@ -423,7 +430,7 @@ def p_caseBodyDefault(p):
     caseBodyDefault : DEFAULT COLON statement
                     | caseBodyDefault statement
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("caseBody", p[1:])
 
 
 def p_caseCondition(p):
@@ -431,7 +438,7 @@ def p_caseCondition(p):
     caseCondition : expression
                   | caseCondition COMMA expression
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("caseCondition", p[1:])
 
 
 '''
@@ -443,7 +450,7 @@ def p_class(p):
     '''
     class : classDeclaration classBody
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = {"class": p[1:]}
 
 
 def p_classDeclaration(p):
@@ -451,22 +458,24 @@ def p_classDeclaration(p):
     classDeclaration : CLASS IDENTIFIER
                      | CLASS IDENTIFIER COLON type
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = {"className": p[2]}
+    if len(p) == 5:
+        p[0]["inherits"] = p[4]
 
 
 def p_classBodyMain(p):
     '''
-    classBodyMain : CURLY_L
+    classBodyMain : classItem
                   | classBodyMain classItem
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = p[1:]
 
 
 def p_classBody(p):
     '''
-    classBody : classBodyMain CURLY_R
+    classBody : CURLY_L classBodyMain CURLY_R
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = {"classBody": p[2]}
 
 
 def p_classItem(p):
@@ -477,28 +486,32 @@ def p_classItem(p):
               | variableDeclaration
               | functionDeclaration
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("classItem", p[1:])
 
 
 def p_classAttribute(p):
     '''
     classAttribute : VAR IDENTIFIER COLON type blockBody
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = {"classAttribute": p[2], "type": p[4], "body": p[5]}
 
 
 def p_classInit(p):
     '''
     classInit : convenienceInit INIT BRACKET_L argumentList BRACKET_R blockBody
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = {}
+    if p[1] is not None:
+        p[0]["type"] = "convenience"
+    p[0]["init"] = p[6]
+    p[0]["arguments"] = p[4]
 
 
 def p_classDeinit(p):
     '''
     classDeinit : DEINIT blockBody
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("deinit", p[1:])
 
 
 def p_convenienceInit(p):
@@ -506,7 +519,8 @@ def p_convenienceInit(p):
     convenienceInit : CONVENIENCE
                     | epsilon
     '''
-    p[0] = buildTree(p[1:])
+    if p[1]:
+        p[0] = {"convenience": p[1]}
 
 
 '''
@@ -519,7 +533,10 @@ def p_bitwiseShift(p):
     bitwiseShift : multiplication
                  | bitwiseShift BITWISESHIFTLEVELOP multiplication
     '''
-    p[0] = buildTree(p[1:])
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        p[0] = {"first": p[1], "operator": p[2], "second": p[3]}
 
 
 def p_multiplication(p):
@@ -527,7 +544,10 @@ def p_multiplication(p):
     multiplication : addition
                    | multiplication MULTIPLICATIONLEVELOP addition
     '''
-    p[0] = buildTree(p[1:])
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        p[0] = {"first": p[1], "operator": p[2], "second": p[3]}
 
 
 def p_addition(p):
@@ -535,7 +555,10 @@ def p_addition(p):
     addition : rangeFormation
              | addition ADDITIONLEVELOP rangeFormation
     '''
-    p[0] = buildTree(p[1:])
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        p[0] = {"first": p[1], "operator": p[2], "second": p[3]}
 
 
 def p_rangeFormation(p):
@@ -543,7 +566,10 @@ def p_rangeFormation(p):
     rangeFormation  : casting
                     | rangeFormation RANGEFORMATIONLEVELOP casting
     '''
-    p[0] = buildTree(p[1:])
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        p[0] = {"first": p[1], "operator": p[2], "second": p[3]}
 
 
 def p_casting(p):
@@ -551,7 +577,10 @@ def p_casting(p):
     casting : nilCoalescing
             | casting CASTINGLEVELOP nilCoalescing
     '''
-    p[0] = buildTree(p[1:])
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        p[0] = {"first": p[1], "operator": p[2], "second": p[3]}
 
 
 def p_nilCoalescing(p):
@@ -559,7 +588,10 @@ def p_nilCoalescing(p):
     nilCoalescing : comparison
                   | nilCoalescing NILCOALESCINGLEVELOP comparison
     '''
-    p[0] = buildTree(p[1:])
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        p[0] = {"first": p[1], "operator": p[2], "second": p[3]}
 
 
 def p_comparison(p):
@@ -570,7 +602,10 @@ def p_comparison(p):
                 | comparison GREATER_THAN logicalConjugation
     '''
     'The rules with LESS_THAN/GREATER_THEN were done because they could also mean a generic'
-    p[0] = buildTree(p[1:])
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        p[0] = {"first": p[1], "operator": p[2], "second": p[3]}
 
 
 def p_logicalConjugation(p):
@@ -578,7 +613,10 @@ def p_logicalConjugation(p):
     logicalConjugation  : default
                         | logicalConjugation LOGICALCONJUGATIONLEVELOP default
     '''
-    p[0] = buildTree(p[1:])
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        p[0] = {"first": p[1], "operator": p[2], "second": p[3]}
 
 
 def p_default(p):
@@ -586,7 +624,10 @@ def p_default(p):
     default : ternary
             | default DEFAULTLEVELOP ternary
     '''
-    p[0] = buildTree(p[1:])
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        p[0] = {"first": p[1], "operator": p[2], "second": p[3]}
 
 
 def p_ternary(p):
@@ -594,7 +635,10 @@ def p_ternary(p):
     ternary : assignment
             | ternary TERNARYLEVELOP assignment
     '''
-    p[0] = buildTree(p[1:])
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        p[0] = {"first": p[1], "operator": p[2], "second": p[3]}
 
 
 def p_assignment(p):
@@ -602,7 +646,10 @@ def p_assignment(p):
     assignment  : term
                 | assignment ASSIGNMENTLEVELOP term
     '''
-    p[0] = buildTree(p[1:])
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        p[0] = {"first": p[1], "operator": p[2], "second": p[3]}
 
 
 def p_term(p):
@@ -610,7 +657,10 @@ def p_term(p):
     term : assignable
          | BRACKET_L expression BRACKET_R
     '''
-    p[0] = buildTree(p[1:])
+    if len(p) == 2:
+        p[0] = p[1]
+    else:
+        p[0] = p[2]
 
 
 def p_postfixOperator(p):
@@ -618,7 +668,7 @@ def p_postfixOperator(p):
     postfixOperator : RANGE_OPERATOR
                     | POSTFIX_OPERATOR
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = {"postfixOperator": p[1]}
 
 
 '''
@@ -631,7 +681,7 @@ def p_do(p):
     '''
     do : DO CURLY_L doBody CURLY_R catch
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("do", p[1:])
 
 
 def p_doBody(p):
@@ -640,7 +690,7 @@ def p_doBody(p):
             | TRY statements doBody
             | epsilon
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("doBody", p[1:])
 
 
 def p_catch(p):
@@ -648,17 +698,16 @@ def p_catch(p):
     catch : CATCH IDENTIFIER CURLY_L catchBody CURLY_R
           | epsilon
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("catch", p[1:])
 
 
 def p_catchBody(p):
     '''
     catchBody   : statements
                 | TRY statements
-                | catchBody
                 | epsilon
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("catchBody", p[1:])
 
 
 '''
@@ -670,7 +719,7 @@ def p_sourceFile(p):
     '''
     sourceFile : statements
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = p[1]
     global res
     res = p[0]
 
@@ -681,7 +730,10 @@ def p_import(p):
            | IMPORT importType IDENTIFIER PERIOD IDENTIFIER
            | import PERIOD IDENTIFIER
     '''
-    p[0] = buildTree(p[1:])
+    if p[2].get("importType", False):
+        p[0] = {"import": ''.join(str[3:]), "importType": p[2]["importType"]}
+    else:
+        p[0] = {"import": ''.join(p[2:])}
 
 
 def p_importType(p):
@@ -695,8 +747,7 @@ def p_importType(p):
                | VAR
                | FUNC
     '''
-    p[0] = buildTree(p[1:])
-    pass
+    p[0] = {"importType": p[1]}
 
 
 def p_statements(p):
@@ -704,8 +755,7 @@ def p_statements(p):
     statements : statement delimiter
                | statements statement delimiter
     '''
-    p[0] = buildTree(p[1:])
-    pass
+    p[0] = {"statement": p[1]}
 
 
 def p_statement(p):
@@ -723,7 +773,7 @@ def p_statement(p):
               | do
               | expression
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = p[1]
 
 
 def p_delimiter(p):
@@ -731,21 +781,21 @@ def p_delimiter(p):
     delimiter : SEMICOLON
               | epsilon
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = p[1]
 
 
 def p_returnStatement(p):
     '''
     returnStatement : RETURN expression
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = {"name": "returnStatement", "element": p[1]}
 
 
 def p_typealias(p):
     '''
     typeAlias : TYPEALIAS IDENTIFIER EQUAL type
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("typealieas", p[1:])
 
 
 def p_type(p):
@@ -753,8 +803,9 @@ def p_type(p):
     type : IDENTIFIER
          | IDENTIFIER QUESTION_MARK
     '''
-    p[0] = buildTree(p[1:])
-    pass
+    p[0] = {"type": p[1], "optional": False}
+    if p[2] is not None:
+        p[0]["optional"] = True
 
 
 def p_expression(p):
@@ -764,7 +815,7 @@ def p_expression(p):
                 | bitwiseShift postfixOperator
                 | assignable
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = p[1]
 
 
 def p_blockBody(p):
@@ -772,8 +823,7 @@ def p_blockBody(p):
     blockBody : CURLY_L statements CURLY_R
               | CURLY_L CURLY_R
     '''
-    p[0] = buildTree(p[1:])
-    pass
+    p[0] = buildTree("blockBody", p[1:])
 
 
 def p_idlist(p):
@@ -781,8 +831,7 @@ def p_idlist(p):
     idlist : IDENTIFIER
            | idlist COMMA IDENTIFIER
     '''
-    p[0] = buildTree(p[1:])
-    pass
+    p[0] = buildTree("idlist", p[1:])
 
 
 '''
@@ -804,7 +853,7 @@ def p_assignable(p):
                | assignable EXCLAMATION_MARK
                | assignable QUESTION_MARK
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = p[1]
 
 
 def p_trailer(p):
@@ -813,7 +862,7 @@ def p_trailer(p):
             | SQUARE_L expression SQUARE_R
             | SQUARE_L trailer SQUARE_R
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("trailer", p[1:])
 
 
 def p_literal(p):
@@ -825,7 +874,7 @@ def p_literal(p):
             | BOOLEAN_LITERAL
             | EXPRESSION_LITERAL
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = buildTree("literal", p[1])
 
 
 def p_error(p):
@@ -836,15 +885,14 @@ def p_error(p):
         print("EOF error")
 
 
-def buildTree(result):
-    if len(result) == 1:
-        return result[0]
-    return result
-
-
 yacc.yacc(start="sourceFile")
 
 lexer = swiftLexer.LexerWrap()
+
+
+def buildTree(name, contents):
+    return {"name": name, "contents": contents}
+
 
 s = '''if keys[index] == key {
       if isLeaf {
@@ -880,4 +928,4 @@ s = '''if keys[index] == key {
       }
     }'''
 yacc.parse(s, lexer=lexer)
-print(res)
+print(json.dumps(res, indent=1))
