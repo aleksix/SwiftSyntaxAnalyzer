@@ -21,53 +21,53 @@ constants = {}
 
 # I don't think we can quite use the PLY built-in precedence table since, best-case, operators can get added dynamically
 # I know nothing about dynamic rule generation in PLY, so this version will have to do
-operators = {"!": {"prefix": 1},
-             "~": {"prefix": 1},
-             "+": {"prefix": 1, "infix": "Addition"},
-             "-": {"prefix": 1, "infix": "Addition"},
-             "..<": {"prefix": 1, "infix": "RangeFormation"},
-             "...": {"prefix": 1, "infix": "RangeFormation", "postfix": 1},
-             "<<": {"infix": "BitwiseShift"},
-             ">>": {"infix": "BitwiseShift"},
-             "*": {"infix": "Multiplication"},
-             "/": {"infix": "Multiplication"},
-             "%": {"infix": "Multiplication"},
-             "&*": {"infix": "Multiplication"},
-             "&": {"infix": "Multiplication"},
-             "&+": {"infix": "Addition"},
-             "&-": {"infix": "Addition"},
-             "|": {"infix": "Addition"},
-             "^": {"infix": "Addition"},
-             "is": {"infix": "Casting"},
-             "as": {"infix": "Casting"},
-             "as?": {"infix": "Casting"},
-             "and": {"infix": "Casting"},
-             "as!": {"infix": "Casting"},
-             "??": {"infix": "NilCoalescing"},
-             "<": {"infix": "Comparison"},
-             "<=": {"infix": "Comparison"},
-             ">": {"infix": "Comparison"},
-             ">=": {"infix": "Comparison"},
-             "==": {"infix": "Comparison"},
-             "!=": {"infix": "Comparison"},
-             "===": {"infix": "Comparison"},
-             "!===": {"infix": "Comparison"},
-             "~=": {"infix": "Comparison"},
-             "&&": {"infix": "LogicalConjunction"},
-             "||": {"infix": "LogicalDisjunction"},
-             "?:": {"infix": "Ternary"},
-             "=": {"infix": "Assignment"},
-             "*=": {"infix": "Assignment"},
-             "/=": {"infix": "Assignment"},
-             "%=": {"infix": "Assignment"},
-             "+=": {"infix": "Assignment"},
-             "-=": {"infix": "Assignment"},
-             "<<=": {"infix": "Assignment"},
-             ">>=": {"infix": "Assignment"},
-             "&=": {"infix": "Assignment"},
-             "|=": {"infix": "Assignment"},
-             "^=": {"infix": "Assignment"},
-             }
+operatorsInfo = {"!": {"prefix": 1},
+                 "~": {"prefix": 1},
+                 "+": {"prefix": 1, "infix": "Addition"},
+                 "-": {"prefix": 1, "infix": "Addition"},
+                 "..<": {"prefix": 1, "infix": "RangeFormation"},
+                 "...": {"prefix": 1, "infix": "RangeFormation", "postfix": 1},
+                 "<<": {"infix": "BitwiseShift"},
+                 ">>": {"infix": "BitwiseShift"},
+                 "*": {"infix": "Multiplication"},
+                 "/": {"infix": "Multiplication"},
+                 "%": {"infix": "Multiplication"},
+                 "&*": {"infix": "Multiplication"},
+                 "&": {"infix": "Multiplication"},
+                 "&+": {"infix": "Addition"},
+                 "&-": {"infix": "Addition"},
+                 "|": {"infix": "Addition"},
+                 "^": {"infix": "Addition"},
+                 "is": {"infix": "Casting"},
+                 "as": {"infix": "Casting"},
+                 "as?": {"infix": "Casting"},
+                 "and": {"infix": "Casting"},
+                 "as!": {"infix": "Casting"},
+                 "??": {"infix": "NilCoalescing"},
+                 "<": {"infix": "Comparison"},
+                 "<=": {"infix": "Comparison"},
+                 ">": {"infix": "Comparison"},
+                 ">=": {"infix": "Comparison"},
+                 "==": {"infix": "Comparison"},
+                 "!=": {"infix": "Comparison"},
+                 "===": {"infix": "Comparison"},
+                 "!===": {"infix": "Comparison"},
+                 "~=": {"infix": "Comparison"},
+                 "&&": {"infix": "LogicalConjunction"},
+                 "||": {"infix": "LogicalDisjunction"},
+                 "?:": {"infix": "Ternary"},
+                 "=": {"infix": "Assignment"},
+                 "*=": {"infix": "Assignment"},
+                 "/=": {"infix": "Assignment"},
+                 "%=": {"infix": "Assignment"},
+                 "+=": {"infix": "Assignment"},
+                 "-=": {"infix": "Assignment"},
+                 "<<=": {"infix": "Assignment"},
+                 ">>=": {"infix": "Assignment"},
+                 "&=": {"infix": "Assignment"},
+                 "|=": {"infix": "Assignment"},
+                 "^=": {"infix": "Assignment"},
+                 }
 
 
 def type_lookup(identifier):
@@ -87,7 +87,7 @@ def constant_lookup(identifier):
 
 
 def operator_lookup(operator):
-    return operators.get(operator, "OP")
+    return operatorsInfo.get(operator, "OP")
 
 
 swiftLexer.function_lookup = function_lookup
@@ -198,6 +198,14 @@ def p_functionDeclaration(p):
     functions[p[3]] = 1
 
 
+def p_returnType(p):
+    '''
+    returnType : ARROW type
+                | epsilon
+    '''
+    p[0] = p[1]
+
+
 def p_functionModifiers(p):
     '''
     functionModifiers   : FINAL
@@ -206,14 +214,17 @@ def p_functionModifiers(p):
                         | epsilon
     '''
     p[0] = p[1]
+    pass
 
 
 def p_argumentList(p):
     '''
     argumentList : argumentDeclaration
                  | argumentList COMMA argumentDeclaration
+                 | epsilon
     '''
     p[0] = p[1]
+    pass
 
 
 def p_argumentDeclaration(p):
@@ -226,7 +237,7 @@ def p_argumentDeclaration(p):
 
 def p_argumentDescription(p):
     '''
-    argumentDescription : IDENTIFIER COLON argumentInout TYPE argumentType
+    argumentDescription : IDENTIFIER COLON argumentInout type argumentType
     '''
     p[0] = p[1]
 
@@ -467,9 +478,12 @@ def p_class(p):
 def p_classDeclaration(p):
     '''
     classDeclaration : CLASS IDENTIFIER
-                     | CLASS IDENTIFIER COLON TYPE
+                     | CLASS IDENTIFIER COLON type
     '''
     p[0] = p[1]
+    types[p[2]] = 1
+    # Needed to make constructors work
+    functions[p[2]] = 1
 
 
 def p_classBodyMain(p):
@@ -500,7 +514,7 @@ def p_classItem(p):
 
 def p_classAttribute(p):
     '''
-    classAttribute : VAR IDENTIFIER COLON TYPE blockBody
+    classAttribute : VAR IDENTIFIER COLON type blockBody
     '''
     p[0] = p[1]
 
@@ -523,14 +537,6 @@ def p_convenienceInit(p):
     '''
     convenienceInit : CONVENIENCE
                     | epsilon
-    '''
-    p[0] = p[1]
-
-
-def p_returnType(p):
-    '''
-    returnType : ARROW TYPE
-                | epsilon
     '''
     p[0] = p[1]
 
@@ -781,7 +787,7 @@ def p_expression(p):
 
 def p_blockBodyMain(p):
     '''
-    blockBodyMain : CURLY_L
+    blockBodyMain : statement
                   | blockBodyMain statement
     '''
     p[0] = p[1]
@@ -789,7 +795,8 @@ def p_blockBodyMain(p):
 
 def p_blockBody(p):
     '''
-    blockBody : blockBodyMain CURLY_R
+    blockBody : CURLY_L blockBodyMain CURLY_R
+              | CURLY_L CURLY_R
     '''
     p[0] = p[1]
 
@@ -831,12 +838,16 @@ def p_error(p):
     if p:
         print("Error at line " + str(p.lineno) + " column " + str(lexer.find_tok_column(p)))
         print(p)
+    else:
+        print("EOF error")
 
 
 yacc.yacc(start="sourceFile")
 
 lexer = swiftLexer.LexerWrap()
 
-s = '''func x(n:Int) {}'''
+s = ''' class c {
+    init(x:Bool) { }
+}'''
 yacc.parse(s, lexer=lexer)
 pass
