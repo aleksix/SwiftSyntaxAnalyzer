@@ -19,7 +19,7 @@ constants = {"y": 1}
 
 # I don't think we can quite use the PLY built-in precedence table since, best-case, operators can get added dynamically
 # I know nothing about dynamic rule generation in PLY, so this version will have to do
-operators = {"+": {"postfix": 1, "infix": "Addition"}}
+operators = {"+": {"prefix": 1, "infix": "Addition"}}
 
 
 def type_lookup(identifier):
@@ -131,6 +131,16 @@ def p_variableAssignment(p):
 def p_functionDeclaration(p):
     '''
     functionDeclaration : functionModifiers FUNC IDENTIFIER BRACKET_L argumentList BRACKET_R throws returnType functionAssignment blockBody
+    '''
+    p[0] = p[1]
+
+
+def p_functionModifiers(p):
+    '''
+    functionModifiers   : FINAL
+                        | OVERRIDE
+                        | PRIVATE
+                        | epsilon
     '''
     p[0] = p[1]
 
@@ -393,7 +403,7 @@ def p_classDeclaration(p):
 
 def p_classBodyMain(p):
     '''
-    classBodyMain : CURLY_L classBodyMain statement
+    classBodyMain : CURLY_L
                   | classBodyMain classItem
     '''
     p[0] = p[1]
@@ -412,6 +422,7 @@ def p_classItem(p):
               | classInit
               | classDeinit
               | variableDeclaration
+              | functionDeclaration
     '''
     p[0] = p[1]
 
@@ -437,7 +448,7 @@ def p_classDeinit(p):
     p[0] = p[1]
 
 
-def p_ConvenienceInit(p):
+def p_convenienceInit(p):
     '''
     convenienceInit : CONVENIENCE
                     | epsilon
@@ -469,7 +480,7 @@ def p_callArgumentLabel(p):
 def p_bitwiseShift(p):
     '''
     bitwiseShift : multiplication
-                 | bitwiseShift bitwiseShiftLevelOp multiplication
+                 | bitwiseShift BITWISESHIFTLEVELOP multiplication
     '''
     p[0] = p[1]
 
@@ -477,7 +488,7 @@ def p_bitwiseShift(p):
 def p_multiplication(p):
     '''
     multiplication : addition
-                   | multiplication multiplicationLevelOp addition
+                   | multiplication MULTIPLICATIONLEVELOP addition
     '''
     p[0] = p[1]
 
@@ -485,17 +496,7 @@ def p_multiplication(p):
 def p_addition(p):
     '''
     addition : rangeFormation
-             | addition additionLevelOp rangeFormation
-    '''
-    p[0] = p[1]
-
-
-def p_functionModifiers(p):
-    '''
-    functionModifiers   : FINAL
-                        | OVERRIDE
-                        | PRIVATE
-                        | epsilon
+             | addition ADDITIONLEVELOP rangeFormation
     '''
     p[0] = p[1]
 
@@ -503,7 +504,7 @@ def p_functionModifiers(p):
 def p_rangeFormation(p):
     '''
     rangeFormation  : casting
-                    | rangeFormation rangeFormationLevelOp casting
+                    | rangeFormation RANGEFORMATIONLEVELOP casting
     '''
     p[0] = p[1]
 
@@ -511,7 +512,7 @@ def p_rangeFormation(p):
 def p_casting(p):
     '''
     casting : nilCoalescing
-            | casting castingLevelOp nilCoalescing
+            | casting CASTINGLEVELOP nilCoalescing
     '''
     p[0] = p[1]
 
@@ -519,7 +520,7 @@ def p_casting(p):
 def p_nilCoalescing(p):
     '''
     nilCoalescing : comparison
-                  | nilCoalescing nilCoalescingLevelOp comparison
+                  | nilCoalescing NILCOALESCINGLEVELOP comparison
     '''
     p[0] = p[1]
 
@@ -527,15 +528,15 @@ def p_nilCoalescing(p):
 def p_comparison(p):
     '''
     comparison  : logicalConjugation
-                | comparison comparsionLevelOp logicalConjugation
+                | comparison COMPARISONLEVELOP logicalConjugation
     '''
     p[0] = p[1]
 
 
 def p_logicalConjugation(p):
     '''
-    logicalConjugation  : DEFAULT
-                        | logicalConjugation logicalConjugationLevelOp default
+    logicalConjugation  : default
+                        | logicalConjugation LOGICALCONJUGATIONLEVELOP default
     '''
     p[0] = p[1]
 
@@ -543,7 +544,7 @@ def p_logicalConjugation(p):
 def p_default(p):
     '''
     default : ternary
-            | default defaultLevelOp ternary
+            | default DEFAULTLEVELOP ternary
     '''
     p[0] = p[1]
 
@@ -551,7 +552,7 @@ def p_default(p):
 def p_ternary(p):
     '''
     ternary : assignment
-            | ternary ternaryLevelOp assignment
+            | ternary TERNARYLEVELOP assignment
     '''
     p[0] = p[1]
 
@@ -559,7 +560,7 @@ def p_ternary(p):
 def p_assignment(p):
     '''
     assignment  : term
-                | assignment assignmentLevelOp term
+                | assignment ASSIGNMENTLEVELOP term
     '''
     p[0] = p[1]
 
@@ -576,27 +577,21 @@ def p_term(p):
          | BOOLEAN_LITERAL
          | EXPRESSION_LITERAL
          | BRACKET_L expression BRACKET_R
-         | expressionOperator expression
     '''
     p[0] = p[1]
 
 
-# def p_prefixOperator(p):
-#    '''
-#    prefixOperator  : EXCLAMATION_MARK
-#                    | BITWISE
-#                    | UNARY_PLUS
-#                    | UNARY_MINUS
-#                    | HALF_OPEN_RANGE
-#                    | RANGE_OPERATOR
-#                    | PERIOD
-#    '''
-#    p[0] = p[1]
+def p_prefixOperator(p):
+    '''
+    prefixOperator  : PREFIX_OPERATOR
+     '''
+    p[0] = p[1]
 
 
 def p_postfixOperator(p):
     '''
     postfixOperator : RANGE_OPERATOR
+                    | POSTFIX_OPERATOR
     '''
     p[0] = p[1]
 
@@ -768,5 +763,5 @@ def p_assignable(p):
 
 yacc.yacc(start="sourceFile")
 
-s = '''import x'''
+s = '''import f'''
 yacc.parse(s)
