@@ -5,7 +5,7 @@ tokens = swiftLexer.tokens
 
 # symbol tables
 # TODO : Fill the initial values for the tables
-types = {"Int": 1}
+types = {"Bool": 1, "Int": 1, "Int8": 1, "UInt": 1, "Float": 1, "Double": 1, "Character": 1, "String": 1}
 functions = {"print": 1}
 variables = {"x": 1}
 constants = {"y": 1}
@@ -19,7 +19,53 @@ constants = {"y": 1}
 
 # I don't think we can quite use the PLY built-in precedence table since, best-case, operators can get added dynamically
 # I know nothing about dynamic rule generation in PLY, so this version will have to do
-operators = {"+": {"prefix": 1, "infix": "Addition"}}
+operators = {"!": {"prefix": 1},
+             "~": {"prefix": 1},
+             "+": {"prefix": 1, "infix": "Addition"},
+             "-": {"prefix": 1, "infix": "Addition"},
+             "..<": {"prefix": 1, "infix": "RangeFormation"},
+             "...": {"prefix": 1, "infix": "RangeFormation", "postfix": 1},
+             "<<": {"infix": "BitwiseShift"},
+             ">>": {"infix": "BitwiseShift"},
+             "*": {"infix": "Multiplication"},
+             "/": {"infix": "Multiplication"},
+             "%": {"infix": "Multiplication"},
+             "&*": {"infix": "Multiplication"},
+             "&": {"infix": "Multiplication"},
+             "&+": {"infix": "Addition"},
+             "&-": {"infix": "Addition"},
+             "|": {"infix": "Addition"},
+             "^": {"infix": "Addition"},
+             "is": {"infix": "Casting"},
+             "as": {"infix": "Casting"},
+             "as?": {"infix": "Casting"},
+             "and": {"infix": "Casting"},
+             "as!": {"infix": "Casting"},
+             "??": {"infix": "NilCoalescing"},
+             "<": {"infix": "Comparison"},
+             "<=": {"infix": "Comparison"},
+             ">": {"infix": "Comparison"},
+             ">=": {"infix": "Comparison"},
+             "==": {"infix": "Comparison"},
+             "!=": {"infix": "Comparison"},
+             "===": {"infix": "Comparison"},
+             "!===": {"infix": "Comparison"},
+             "~=": {"infix": "Comparison"},
+             "&&": {"infix": "LogicalConjunction"},
+             "||": {"infix": "LogicalDisjunction"},
+             "?:": {"infix": "Ternary"},
+             "=": {"infix": "Assignment"},
+             "*=": {"infix": "Assignment"},
+             "/=": {"infix": "Assignment"},
+             "%=": {"infix": "Assignment"},
+             "+=": {"infix": "Assignment"},
+             "-=": {"infix": "Assignment"},
+             "<<=": {"infix": "Assignment"},
+             ">>=": {"infix": "Assignment"},
+             "&=": {"infix": "Assignment"},
+             "|=": {"infix": "Assignment"},
+             "^=": {"infix": "Assignment"},
+             }
 
 
 def type_lookup(identifier):
