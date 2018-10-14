@@ -312,7 +312,7 @@ def p_loopLabel(p):
     p[0] = buildTree(p[1:])
 
 
-def p_foorLoop(p):
+def p_forLoop(p):
     '''
     forLoop : FOR IDENTIFIER IN expression blockBody
     '''
@@ -749,6 +749,24 @@ def p_type(p):
     p[0] = buildTree(p[1:])
     pass
 
+def p_loopControl(p):
+    '''
+    loopControl : LoopControls ControlLabel
+    '''
+    p[0] = buildTree(p[1:])
+
+def p_loopControls(p):
+    '''
+    loopControls : BREAK | CONTINUE
+    '''
+    p[0] = buildTree(p[1:])
+
+def p_controlLabel(p):
+    '''
+    controlLabel : IDENTIFIER
+                 | epsilon
+    '''
+    p[0] = buildTree(p[1:])
 
 def p_expression(p):
     '''
