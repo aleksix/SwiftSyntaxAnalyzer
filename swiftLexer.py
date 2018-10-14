@@ -46,7 +46,7 @@ tokens = keywords + context_keywords + expression_literals + ["IDENTIFIER", "STR
                                                               "SQUARE_L", "SQUARE_R", "SEMICOLON", "COLON", "COMMA",
                                                               "PERIOD", "AT", "POUND", "POSTFIX_QUESTION", "PREFIX_DOT",
                                                               "AMPERSAND", "UNDERSCORE", "GREATER_THAN", "LESS_THAN",
-                                                              "ARROW", "EQUAL",
+                                                              "ARROW", "EQUAL", "RANGE_OPERATOR",
                                                               "BACKTICK", "QUESTION_MARK",
                                                               "EXCLAMATION_MARK", "ERROR", "PREFIX_AMPERSAND",
                                                               "BINARY_OPERATOR", "PREFIX_OPERATOR", "POSTFIX_OPERATOR", "ASSIGNABLE"]
@@ -176,6 +176,8 @@ def t_OPERATOR(t):
         t.type = "GREATER_THAN"
     elif t.value == "=":
         t.type = "EQUAL"
+    elif t.value == "...":
+        t.type = "RANGE_OPERATOR"
 
     # No match here, get the correct type of operator
     if t.type == "OPERATOR":
