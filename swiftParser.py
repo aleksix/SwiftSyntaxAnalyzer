@@ -89,7 +89,6 @@ def p_constantDeclaration(p):
                         | constantDeclarationList COLON type
     '''
     p[0] = buildTree(p[1:])
-    pass
 
 
 def p_constantAssignment(p):
@@ -97,7 +96,6 @@ def p_constantAssignment(p):
     constantAssignment : constantDeclaration EQUAL expression
     '''
     p[0] = buildTree(p[1:])
-    pass
 
 
 '''
@@ -220,7 +218,7 @@ def p_argumentInout(p):
 def p_argumentType(p):
     '''
     argumentType : RANGE_OPERATOR
-                | EQUAL assignable
+                | EQUAL expression
                 | epsilon
     '''
     p[0] = buildTree(p[1:])
@@ -267,8 +265,8 @@ def p_callArgumentList(p):
 
 def p_callArgument(p):
     '''
-    callArgument : callArgumentReference assignable
-                 | callArgumentReference callArgumentLabel assignable
+    callArgument : callArgumentReference expression
+                 | callArgumentReference callArgumentLabel expression
     '''
     'The first part is a hacky one - PLY gets confused by consecutive IDENTIFIER from different rules'
     p[0] = buildTree(p[1:])
@@ -353,14 +351,17 @@ def p_if(p):
        | ifElseIf elseEnd
     '''
     p[0] = buildTree(p[1:])
+    pass
 
 
 def p_ifElseIf(p):
     '''
     ifElseIf : IF expression blockBody
-             | ifElseIf ELSE ifElseIf
+             | IF constantAssignment blockBody
+             | ifElseIf ELSE if
     '''
     p[0] = buildTree(p[1:])
+    pass
 
 
 def p_elseEnd(p):
@@ -368,6 +369,7 @@ def p_elseEnd(p):
     elseEnd : ELSE blockBody
     '''
     p[0] = buildTree(p[1:])
+    pass
 
 
 def p_guard(p):
@@ -564,7 +566,10 @@ def p_comparison(p):
     '''
     comparison  : logicalConjugation
                 | comparison COMPARISONLEVELOP logicalConjugation
+                | comparison LESS_THAN logicalConjugation
+                | comparison GREATER_THAN logicalConjugation
     '''
+    'The rules with LESS_THAN/GREATER_THEN were done because they could also mean a generic'
     p[0] = buildTree(p[1:])
 
 
@@ -666,6 +671,8 @@ def p_sourceFile(p):
     sourceFile : statements
     '''
     p[0] = buildTree(p[1:])
+    global res
+    res = p[0]
 
 
 def p_import(p):
@@ -784,6 +791,7 @@ def p_blockBody(p):
               | CURLY_L CURLY_R
     '''
     p[0] = buildTree(p[1:])
+    pass
 
 
 def p_idlist(p):
@@ -792,6 +800,7 @@ def p_idlist(p):
            | idlist COMMA IDENTIFIER
     '''
     p[0] = buildTree(p[1:])
+    pass
 
 
 '''
@@ -811,6 +820,7 @@ def p_assignable(p):
                | assignable trailer
                | assignable PERIOD IDENTIFIER
                | assignable EXCLAMATION_MARK
+               | assignable QUESTION_MARK
     '''
     p[0] = buildTree(p[1:])
 
@@ -818,6 +828,7 @@ def p_assignable(p):
 def p_trailer(p):
     '''
     trailer : SQUARE_L idlist SQUARE_R
+            | SQUARE_L expression SQUARE_R
             | SQUARE_L trailer SQUARE_R
     '''
     p[0] = buildTree(p[1:])
@@ -868,7 +879,6 @@ s = '''if keys[index] == key {
         }
       }
     } else if key < keys[index] {
-      // We should go to left child...
       if let leftChild = children?[index] {
         leftChild.remove(key)
         if leftChild.numberOfKeys < owner.order {
@@ -878,7 +888,6 @@ s = '''if keys[index] == key {
         print("The key:\(key) is not in the tree.")
       }
     } else {
-      // We should go to right child...
       if let rightChild = children?[(index + 1)] {
         rightChild.remove(key)
         if rightChild.numberOfKeys < owner.order {
@@ -887,6 +896,6 @@ s = '''if keys[index] == key {
       } else {
         print("The key:\(key) is not in the tree")
       }
-    }
-}'''
+    }'''
 yacc.parse(s, lexer=lexer)
+print(res)
