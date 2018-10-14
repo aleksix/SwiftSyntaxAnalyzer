@@ -7,8 +7,8 @@ tokens = swiftLexer.tokens
 # TODO : Fill the initial values for the tables
 types = {"Int": 1}
 functions = {"print": 1}
-variables = {"x": 1}
-constants = {"y": 1}
+variables = {}
+constants = {}
 
 # Explanation:
 # The lookup is conducted by the operator itself. We can have an operator in 3 different types :
@@ -48,7 +48,7 @@ swiftLexer.variable_lookup = variable_lookup
 swiftLexer.constant_lookup = constant_lookup
 swiftLexer.operator_lookup = operator_lookup
 
-swiftLexer.build()
+# lexer = swiftLexer.build()
 
 '''
         CONSTANTS
@@ -90,22 +90,29 @@ def p_variableModifiers(p):
                       | epsilon
     '''
     p[0] = p[1]
+    if p[1] is None:
+        p[0] = ''
+    pass
 
 
 def p_variableDeclarationStart(p):
     '''
     variableDeclarationStart : variableModifiers VAR IDENTIFIER
     '''
+    variables[p[len(p) - 1]] = 1
     p[0] = p[1]
+    pass
 
 
 def p_variableDeclaration(p):
     '''
-    variableDeclaration : variableDeclarationStart variableAssignment
+    variableDeclaration : variableDeclarationList COLON type
+                        | variableDeclarationStart COLON type
+                        | variableDeclarationStart variableAssignment
                         | variableDeclarationStart COLON type variableAssignment
-                        | variableDeclarationList COLON type
     '''
     p[0] = p[1]
+    pass
 
 
 def p_variableDeclarationList(p):
@@ -114,6 +121,7 @@ def p_variableDeclarationList(p):
                             | variableDeclarationList COMMA IDENTIFIER
     '''
     p[0] = p[1]
+    pass
 
 
 def p_variableAssignment(p):
@@ -581,13 +589,6 @@ def p_term(p):
     p[0] = p[1]
 
 
-def p_prefixOperator(p):
-    '''
-    prefixOperator  : PREFIX_OPERATOR
-     '''
-    p[0] = p[1]
-
-
 def p_postfixOperator(p):
     '''
     postfixOperator : RANGE_OPERATOR
@@ -677,6 +678,7 @@ def p_statements(p):
                | statements statement delimiter
     '''
     p[0] = p[1]
+    pass
 
 
 def p_statement(p):
@@ -687,10 +689,11 @@ def p_statement(p):
               | functionDeclaration
               | functionCall
               | variableDeclaration
-              | constantDeclaration
+              | constantAssignment
               | variableAssignment
               | returnStatement
-              | classDeclaration
+              | class
+              | do
     '''
     p[0] = p[1]
 
@@ -713,8 +716,10 @@ def p_returnStatement(p):
 def p_type(p):
     '''
     type : TYPE
+         | TYPE QUESTION_MARK
     '''
     p[0] = p[1]
+    pass
 
 
 def p_expression(p):
@@ -763,5 +768,7 @@ def p_assignable(p):
 
 yacc.yacc(start="sourceFile")
 
-s = '''import f'''
-yacc.parse(s)
+lexer = swiftLexer.LexerWrap()
+
+s = '''var x : Int'''
+yacc.parse(s, lexer=lexer)

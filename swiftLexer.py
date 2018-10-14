@@ -236,3 +236,16 @@ def input(text):
 
 def token():
     return lexer.token()
+
+
+class LexerWrap:
+    def __init__(self, **kwargs):
+        self.lexer = lex.lex(**kwargs)
+
+    def input(self, text):
+        self.lexer.input(text)
+
+    def token(self):
+        tok = self.lexer.token()
+        # print(tok)
+        return tok
