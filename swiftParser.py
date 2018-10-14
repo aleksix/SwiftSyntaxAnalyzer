@@ -260,14 +260,24 @@ def p_functionCall(p):
 def p_callArgumentList(p):
     '''
     callArgumentList : callArgument
-                    | callArgumentList COMMA callArgument
+                     | callArgumentList COMMA callArgument
     '''
     p[0] = buildTree(p[1:])
 
 
 def p_callArgument(p):
     '''
-    callArgument : callArgumentReference callArgumentLabel assignable
+    callArgument : callArgumentReference assignable
+                 | callArgumentReference callArgumentLabel assignable
+    '''
+    'The first part is a hacky one - PLY gets confused by consecutive IDENTIFIER from different rules'
+    p[0] = buildTree(p[1:])
+
+
+def p_callArgumentReference(p):
+    '''
+    callArgumentReference : AMPERSAND
+                          | epsilon
     '''
     p[0] = buildTree(p[1:])
 
@@ -276,14 +286,6 @@ def p_callArgumentLabel(p):
     '''
     callArgumentLabel : IDENTIFIER COLON
                       | epsilon
-    '''
-    p[0] = buildTree(p[1:])
-
-
-def p_callArgumentReference(p):
-    '''
-    callArgumentReference : AMPERSAND
-                          | epsilon
     '''
     p[0] = buildTree(p[1:])
 
@@ -869,5 +871,4 @@ s = '''if keys[index] == key {
       }
     }
 }'''
-s = 'remove(keys[index])'
 yacc.parse(s, lexer=lexer)
