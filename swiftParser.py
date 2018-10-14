@@ -3,15 +3,6 @@ import swiftLexer
 
 tokens = swiftLexer.tokens
 
-# symbol tables
-# TODO : Fill the initial values for the tables
-types = {"Bool": 1, "Int": 1, "Int8": 1, "Int16": 1, "Int32": 1, "Int64": 1, "UInt": 1, "UInt8": 1, "UInt16": 1,
-         "UInt32": 1, "UInt64": 1, "Float": 1, "Float80": 1, "Double": 1, "Character": 1, "String": 1,
-         "Equatable": 1, "Comparable": 1}
-functions = {"print": 1, "abs": 1, "min": 1, "max": 1, "filter": 1, "reduce": 1}
-variables = {}
-constants = {}
-
 # Explanation:
 # The lookup is conducted by the operator itself. We can have an operator in 3 different types :
 #  prefix, infix and postfix
@@ -21,80 +12,53 @@ constants = {}
 
 # I don't think we can quite use the PLY built-in precedence table since, best-case, operators can get added dynamically
 # I know nothing about dynamic rule generation in PLY, so this version will have to do
-operatorsInfo = {"!": {"prefix": 1},
-                 "~": {"prefix": 1},
-                 "+": {"prefix": 1, "infix": "Addition"},
-                 "-": {"prefix": 1, "infix": "Addition"},
-                 "..<": {"prefix": 1, "infix": "RangeFormation"},
-                 "...": {"prefix": 1, "infix": "RangeFormation", "postfix": 1},
-                 "<<": {"infix": "BitwiseShift"},
-                 ">>": {"infix": "BitwiseShift"},
-                 "*": {"infix": "Multiplication"},
-                 "/": {"infix": "Multiplication"},
-                 "%": {"infix": "Multiplication"},
-                 "&*": {"infix": "Multiplication"},
-                 "&": {"infix": "Multiplication"},
-                 "&+": {"infix": "Addition"},
-                 "&-": {"infix": "Addition"},
-                 "|": {"infix": "Addition"},
-                 "^": {"infix": "Addition"},
-                 "is": {"infix": "Casting"},
-                 "as": {"infix": "Casting"},
-                 "as?": {"infix": "Casting"},
-                 "and": {"infix": "Casting"},
-                 "as!": {"infix": "Casting"},
-                 "??": {"infix": "NilCoalescing"},
-                 "<": {"infix": "Comparison"},
-                 "<=": {"infix": "Comparison"},
-                 ">": {"infix": "Comparison"},
-                 ">=": {"infix": "Comparison"},
-                 "==": {"infix": "Comparison"},
-                 "!=": {"infix": "Comparison"},
-                 "===": {"infix": "Comparison"},
-                 "!===": {"infix": "Comparison"},
-                 "~=": {"infix": "Comparison"},
-                 "&&": {"infix": "LogicalConjunction"},
-                 "||": {"infix": "LogicalDisjunction"},
-                 "?:": {"infix": "Ternary"},
-                 "=": {"infix": "Assignment"},
-                 "*=": {"infix": "Assignment"},
-                 "/=": {"infix": "Assignment"},
-                 "%=": {"infix": "Assignment"},
-                 "+=": {"infix": "Assignment"},
-                 "-=": {"infix": "Assignment"},
-                 "<<=": {"infix": "Assignment"},
-                 ">>=": {"infix": "Assignment"},
-                 "&=": {"infix": "Assignment"},
-                 "|=": {"infix": "Assignment"},
-                 "^=": {"infix": "Assignment"},
-                 }
-
-
-def type_lookup(identifier):
-    return types.get(identifier, "ID") != "ID"
-
-
-def function_lookup(identifier):
-    return functions.get(identifier, "ID") != "ID"
-
-
-def variable_lookup(identifier):
-    return variables.get(identifier, "ID") != "ID"
-
-
-def constant_lookup(identifier):
-    return constants.get(identifier, "ID") != "ID"
-
-
-def operator_lookup(operator):
-    return operatorsInfo.get(operator, "OP")
-
-
-swiftLexer.function_lookup = function_lookup
-swiftLexer.type_lookup = type_lookup
-swiftLexer.variable_lookup = variable_lookup
-swiftLexer.constant_lookup = constant_lookup
-swiftLexer.operator_lookup = operator_lookup
+operatorsInfo = [{"!": {"prefix": 1},
+                  "~": {"prefix": 1},
+                  "+": {"prefix": 1, "infix": "Addition"},
+                  "-": {"prefix": 1, "infix": "Addition"},
+                  "..<": {"prefix": 1, "infix": "RangeFormation"},
+                  "...": {"prefix": 1, "infix": "RangeFormation", "postfix": 1},
+                  "<<": {"infix": "BitwiseShift"},
+                  ">>": {"infix": "BitwiseShift"},
+                  "*": {"infix": "Multiplication"},
+                  "/": {"infix": "Multiplication"},
+                  "%": {"infix": "Multiplication"},
+                  "&*": {"infix": "Multiplication"},
+                  "&": {"infix": "Multiplication"},
+                  "&+": {"infix": "Addition"},
+                  "&-": {"infix": "Addition"},
+                  "|": {"infix": "Addition"},
+                  "^": {"infix": "Addition"},
+                  "is": {"infix": "Casting"},
+                  "as": {"infix": "Casting"},
+                  "as?": {"infix": "Casting"},
+                  "and": {"infix": "Casting"},
+                  "as!": {"infix": "Casting"},
+                  "??": {"infix": "NilCoalescing"},
+                  "<": {"infix": "Comparison"},
+                  "<=": {"infix": "Comparison"},
+                  ">": {"infix": "Comparison"},
+                  ">=": {"infix": "Comparison"},
+                  "==": {"infix": "Comparison"},
+                  "!=": {"infix": "Comparison"},
+                  "===": {"infix": "Comparison"},
+                  "!===": {"infix": "Comparison"},
+                  "~=": {"infix": "Comparison"},
+                  "&&": {"infix": "LogicalConjunction"},
+                  "||": {"infix": "LogicalDisjunction"},
+                  "?:": {"infix": "Ternary"},
+                  "=": {"infix": "Assignment"},
+                  "*=": {"infix": "Assignment"},
+                  "/=": {"infix": "Assignment"},
+                  "%=": {"infix": "Assignment"},
+                  "+=": {"infix": "Assignment"},
+                  "-=": {"infix": "Assignment"},
+                  "<<=": {"infix": "Assignment"},
+                  ">>=": {"infix": "Assignment"},
+                  "&=": {"infix": "Assignment"},
+                  "|=": {"infix": "Assignment"},
+                  "^=": {"infix": "Assignment"},
+                  }]
 
 # lexer = swiftLexer.build()
 
@@ -109,13 +73,13 @@ def p_constantDeclarationList(p):
                             | constantDeclarationList COMMA IDENTIFIER
     '''
     p[0] = p[1]
-    constants[p[len(p) - 1]] = 1
     pass
 
 
 def p_constantDeclaration(p):
     '''
-    constantDeclaration :  constantDeclarationList COLON type
+    constantDeclaration : constantDeclarationList
+                        | constantDeclarationList COLON type
     '''
     p[0] = p[1]
     pass
@@ -151,7 +115,6 @@ def p_variableDeclarationStart(p):
     '''
     variableDeclarationStart : variableModifiers VAR IDENTIFIER
     '''
-    variables[p[len(p) - 1]] = 1
     p[0] = p[1]
     pass
 
@@ -173,8 +136,6 @@ def p_variableDeclarationList(p):
                             | variableDeclarationList COMMA IDENTIFIER
     '''
     p[0] = p[1]
-    if len(p) > 2:
-        variables[p[len(p) - 1]] = 1
     pass
 
 
@@ -195,7 +156,6 @@ def p_functionDeclaration(p):
     functionDeclaration : functionModifiers FUNC IDENTIFIER BRACKET_L argumentList BRACKET_R throws returnType functionAssignment blockBody
     '''
     p[0] = p[1]
-    functions[p[3]] = 1
 
 
 def p_returnType(p):
@@ -277,7 +237,7 @@ def p_throws(p):
 
 def p_functionAssignment(p):
     '''
-    functionAssignment  : EQUAL FUNCTION
+    functionAssignment  : EQUAL IDENTIFIER
                         | epsilon
     '''
     p[0] = p[1]
@@ -285,7 +245,7 @@ def p_functionAssignment(p):
 
 def p_functionCall(p):
     '''    
-    functionCall : FUNCTION BRACKET_L callArgumentList BRACKET_R
+    functionCall : IDENTIFIER BRACKET_L callArgumentList BRACKET_R
     '''
     p[0] = p[1]
 
@@ -481,9 +441,6 @@ def p_classDeclaration(p):
                      | CLASS IDENTIFIER COLON type
     '''
     p[0] = p[1]
-    types[p[2]] = 1
-    # Needed to make constructors work
-    functions[p[2]] = 1
 
 
 def p_classBodyMain(p):
@@ -767,14 +724,25 @@ def p_returnStatement(p):
     p[0] = p[1]
 
 
+def p_typealias(p):
+    '''
+    typeAlias : TYPEALIAS IDENTIFIER EQUAL type
+    '''
+    p[0] = p[1]
+
+
 def p_type(p):
     '''
-    type : TYPE
-         | TYPE QUESTION_MARK
+    type : normalType
+         | normalType QUESTION_MARK
     '''
     p[0] = p[1]
     pass
 
+def p_normalType(p):
+    '''
+    normalType : IDENTIFIER
+    '''
 
 def p_expression(p):
     '''
@@ -813,11 +781,9 @@ def p_epsilon(p):
 
 def p_assignable(p):
     '''
-    assignable : FUNCTION
-               | expression
-               | VARIABLE
-               | CONSTANT
+    assignable : expression
                | literal
+               | IDENTIFIER
     '''
     p[0] = p[1]
 
@@ -847,7 +813,9 @@ yacc.yacc(start="sourceFile")
 lexer = swiftLexer.LexerWrap()
 
 s = ''' class c {
-    init(x:Bool) { }
+    init( ) { 
+        let x = 6
+        return x 
+    }
 }'''
 yacc.parse(s, lexer=lexer)
-pass

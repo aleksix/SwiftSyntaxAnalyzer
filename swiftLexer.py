@@ -54,8 +54,7 @@ tokens = keywords + context_keywords + operator_groups + ["IDENTIFIER", "STRING_
                                                           "UNDERSCORE", "GREATER_THAN", "LESS_THAN", "ARROW", "EQUAL",
                                                           "RANGE_OPERATOR", "BACKTICK", "QUESTION_MARK",
                                                           "EXCLAMATION_MARK", "ERROR", "PREFIX_AMPERSAND",
-                                                          "PREFIX_OPERATOR", "POSTFIX_OPERATOR", "TYPE", "FUNCTION",
-                                                          "VARIABLE", "CONSTANT", "EXPRESSION_LITERAL"]
+                                                          "PREFIX_OPERATOR", "POSTFIX_OPERATOR", "EXPRESSION_LITERAL"]
 
 t_ignore = ' \t'
 
@@ -96,22 +95,7 @@ def t_IDENTIFIER(t):
             t.type = "BOOLEAN_LITERAL"
         elif t.value == "nil":
             t.type = "NIL_LITERAL"
-
-    if t.type == "IDENTIFIER":
-        if type_lookup(t.value):
-            t.type = "TYPE"
-        elif function_lookup(t.value):
-            t.type = "FUNCTION"
-        elif variable_lookup(t.value):
-            t.type = "VARIABLE"
-        elif constant_lookup(t.value):
-            t.type = "CONSTANT"
     return t
-
-
-# @TOKEN(expression_literal)
-# def t_EXPRESSION_LITERAL(t):
-#    t.type = expression_literals_map[t.value]
 
 
 @TOKEN(operator)
@@ -177,7 +161,7 @@ def t_OPERATOR(t):
     # No match here, get the correct type of operator
     if t.type == "OPERATOR":
         op = operator_lookup(t.value)
-        if op != "OP":
+        if op != "ID":
             if prefix == postfix:
                 t.type = op["infix"].upper() + "LEVELOP"
             elif prefix:
@@ -190,14 +174,6 @@ def t_OPERATOR(t):
 def t_error(t):
     print("Illegal/ignored value '%s'" % t.value)
     t.lexer.skip(1)
-
-
-lexer = None
-type_lookup = None
-function_lookup = None
-variable_lookup = None
-constant_lookup = None
-operator_lookup = None
 
 
 class LexerWrap:
