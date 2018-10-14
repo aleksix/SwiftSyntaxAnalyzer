@@ -49,7 +49,7 @@ tokens = keywords + context_keywords + expression_literals + ["IDENTIFIER", "STR
                                                               "ARROW", "EQUAL",
                                                               "BACKTICK", "QUESTION_MARK",
                                                               "EXCLAMATION_MARK", "ERROR", "PREFIX_AMPERSAND",
-                                                              "BINARY_OPERATOR", "PREFIX_OPERATOR", "POSTFIX_OPERATOR"]
+                                                              "BINARY_OPERATOR", "PREFIX_OPERATOR", "POSTFIX_OPERATOR", "ASSIGNABLE"]
 
 t_ignore = ' \t'
 
