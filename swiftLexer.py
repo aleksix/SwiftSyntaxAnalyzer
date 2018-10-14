@@ -96,7 +96,7 @@ operator = r"""([\u00A1-\u00A7]|[\u2020-\u2027]|[\u2030-\u203E]|[\u2041-\u2053]|
 \u00A1-\u00A7]|[\u2020-\u2027]|[\u2030-\u203E]|[\u2041-\u2053]|[\u2055-\u205E]|[\u2190-\u23FF]|[\u2500-\u2775]|[
 \u2794-\u2BFF]|[\u2E00-\u2E7F]|[\u3001-\u3003]|[\u3008-\u3020]|\/|\=|\-|\+|\!|\*|\%|\<|\>|\&|\||\^|\~|\?|\.|\@|\{
 |\}|\(|\)|\[|\]|\,|\:|\;|\u3030|\u2016|\u2017|\u00A9|\u00AB|\u00AC|\u00AE|\u00B0|\u00B1|\u00B6|\u00BB|\u00BF|\u00D7
-|\u00F7)|([\u0300-\u036F]|[\u1DC0-\u1DFF]|[\u20D0-\u20FF]|[\uFE00-\uFE0F]|[\uFE20-\uFE2F]|[\U000E0100-\U000E01EF]))*"""
+|\u00F7)|([\u0300-\u036F]|[\u1DC0-\u1DFF]|[\u20D0-\u20FF]|[\uFE00-\uFE0F]|[\uFE20-\uFE2F]|[\U000E0100-\U000E01EF]))*?"""
 
 t_STRING_LITERAL = r'".*?"|"""\n(\s*).*\n(\s*)"""'
 
@@ -205,7 +205,7 @@ def t_OPERATOR(t):
                 t.type = "PREFIX_OPERATOR"
             else:
                 t.type = "POSTFIX_OPERATOR"
-    return t
+        return t
 
 
 def t_error(t):
@@ -226,18 +226,6 @@ constant_lookup = None
 operator_lookup = None
 
 
-def build(**kwargs):
-    lexer = lex.lex(**kwargs)
-
-
-def input(text):
-    lexer.input(text)
-
-
-def token():
-    return lexer.token()
-
-
 class LexerWrap:
     def __init__(self, **kwargs):
         self.lexer = lex.lex(**kwargs)
@@ -249,3 +237,9 @@ class LexerWrap:
         tok = self.lexer.token()
         # print(tok)
         return tok
+
+    def find_tok_column(self, token):
+        """ Find the column of the token in its line.
+        """
+        last_cr = self.lexer.lexdata.rfind('\n', 0, token.lexpos)
+        return token.lexpos - last_cr

@@ -107,13 +107,17 @@ def p_constantDeclarationList(p):
                             | constantDeclarationList COMMA IDENTIFIER
     '''
     p[0] = p[1]
+    constants[p[len(p) - 1]] = 1
+    pass
 
 
 def p_constantDeclaration(p):
     '''
-    constantDeclaration :  constantDeclarationList COLON type
+    constantDeclaration : constantDeclarationList COLON type
+                        | constantDeclarationList
     '''
     p[0] = p[1]
+    pass
 
 
 def p_constantAssignment(p):
@@ -121,6 +125,7 @@ def p_constantAssignment(p):
     constantAssignment : constantDeclaration EQUAL expression
     '''
     p[0] = p[1]
+    pass
 
 
 '''
@@ -167,6 +172,8 @@ def p_variableDeclarationList(p):
                             | variableDeclarationList COMMA IDENTIFIER
     '''
     p[0] = p[1]
+    if len(p) > 2:
+        variables[p[len(p) - 1]] = 1
     pass
 
 
@@ -187,6 +194,7 @@ def p_functionDeclaration(p):
     functionDeclaration : functionModifiers FUNC IDENTIFIER BRACKET_L argumentList BRACKET_R throws returnType functionAssignment blockBody
     '''
     p[0] = p[1]
+    functions[p[3]] = 1
 
 
 def p_functionModifiers(p):
@@ -203,6 +211,7 @@ def p_argumentList(p):
     '''
     argumentList : argumentDeclaration
                  | argumentList COMMA argumentDeclaration
+                 | epsilon
     '''
     p[0] = p[1]
 
@@ -281,6 +290,14 @@ def p_callArgumentList(p):
 def p_callArgument(p):
     '''
     callArgument : callArgumentReference callArgumentLabel assignable
+    '''
+    p[0] = p[1]
+
+
+def p_callArgumentLabel(p):
+    '''
+    callArgumentLabel : IDENTIFIER COLON
+                      | epsilon
     '''
     p[0] = p[1]
 
@@ -518,14 +535,6 @@ def p_returnType(p):
     p[0] = p[1]
 
 
-def p_callArgumentLabel(p):
-    '''
-    callArgumentLabel : IDENTIFIER COLON
-                      | epsilon
-    '''
-    p[0] = p[1]
-
-
 '''
         EXPRESSION
 '''
@@ -621,15 +630,7 @@ def p_assignment(p):
 
 def p_term(p):
     '''
-    term : FUNCTION
-         | VARIABLE
-         | CONSTANT
-         | INT_LITERAL
-         | FLOAT_LITERAL
-         | STRING_LITERAL
-         | NIL_LITERAL
-         | BOOLEAN_LITERAL
-         | EXPRESSION_LITERAL
+    term : assignable
          | BRACKET_L expression BRACKET_R
     '''
     p[0] = p[1]
@@ -716,6 +717,7 @@ def p_importType(p):
                | FUNC
     '''
     p[0] = p[1]
+    pass
 
 
 def p_statements(p):
@@ -808,13 +810,33 @@ def p_assignable(p):
                | expression
                | VARIABLE
                | CONSTANT
+               | literal
     '''
     p[0] = p[1]
+
+
+def p_literal(p):
+    '''
+    literal : INT_LITERAL
+            | FLOAT_LITERAL
+            | STRING_LITERAL
+            | NIL_LITERAL
+            | BOOLEAN_LITERAL
+            | EXPRESSION_LITERAL
+    '''
+    p[0] = p[1]
+
+
+def p_error(p):
+    if p:
+        print("Error at line " + str(p.lineno) + " column " + str(lexer.find_tok_column(p)))
+        print(p)
 
 
 yacc.yacc(start="sourceFile")
 
 lexer = swiftLexer.LexerWrap()
 
-s = '''var x : Int'''
+s = '''func x(n:Int) {}'''
 yacc.parse(s, lexer=lexer)
+pass
