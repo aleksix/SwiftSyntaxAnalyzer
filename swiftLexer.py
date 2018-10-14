@@ -45,8 +45,9 @@ tokens = keywords + context_keywords + expression_literals + ["IDENTIFIER", "STR
                                                               "BRACKET_L", "BRACKET_R", "CURLY_L", "CURLY_R",
                                                               "SQUARE_L", "SQUARE_R", "SEMICOLON", "COLON", "COMMA",
                                                               "PERIOD", "AT", "POUND", "POSTFIX_QUESTION", "PREFIX_DOT",
-                                                              "AMPERSAND", "UNDERSCORE",
-                                                              "ARROW", "BACKTICK", "QUESTION_MARK",
+                                                              "AMPERSAND", "UNDERSCORE", "GREATER_THAN", "LESS_THAN"
+                                                                                                         "ARROW",
+                                                              "BACKTICK", "QUESTION_MARK",
                                                               "EXCLAMATION_MARK", "ERROR", "PREFIX_AMPERSAND",
                                                               "BINARY_OPERATOR", "PREFIX_OPERATOR", "POSTFIX_OPERATOR"]
 
@@ -127,7 +128,9 @@ def t_OPERATOR(t):
         prefix = lexdata[t.lexpos - 1].isspace()
     if t.lexpos < len(lexdata) - 1:
         postfix = lexdata[t.lexpos + 1].isspace()
-    if t.value[0] == '(' and len(t.value) == 1:
+
+    # All the values below might have special meaning, hence the distinction
+    if t.value == '(':
         t.type = "BRACKET_L"
     elif t.value == ')':
         t.type = "BRACKET_R"
@@ -167,6 +170,10 @@ def t_OPERATOR(t):
             t.type = "POSTFIX_QUESTION"
     elif t.value == '!':
         t.type = "EXCLAMATION_MARK"
+    elif t.value == "<":
+        t.type = "LESS_THAN"
+    elif t.value == ">":
+        t.type = "GREATER_THAN"
 
     # No match here, get the correct type of operator
     if t.type == "OPERATOR":
