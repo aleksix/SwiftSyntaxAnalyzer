@@ -102,75 +102,85 @@ def t_IDENTIFIER(t):
 
 @TOKEN(operator)
 def t_OPERATOR(t):
-    lexdata = t.lexer.lexdata
+    t = check_operator(t)
+
+    # Incorrect operator - due to swift handling existing operators separately, without regexps
+    while t.type == "OPERATOR":
+        t.lexer.lexpos -= 1
+        t.value = t.value[:len(t.value) - 1]
+        t = check_operator(t)
+    return t
+
+
+def check_operator(operator):
+    lexdata = operator.lexer.lexdata
     prefix = False
     postfix = False
-    if t.lexpos > 0:
-        prefix = lexdata[t.lexpos - 1].isspace()
-    if t.lexpos + len(t.value) < len(lexdata):
-        postfix = lexdata[t.lexpos + len(t.value)].isspace()
+    if operator.lexpos > 0:
+        prefix = lexdata[operator.lexpos - 1].isspace()
+    if operator.lexpos + len(operator.value) < len(lexdata):
+        postfix = lexdata[operator.lexpos + len(operator.value)].isspace()
 
-    # All the values below might have special meaning, hence the distinction
-    if t.value == '(':
-        t.type = "BRACKET_L"
-    elif t.value == ')':
-        t.type = "BRACKET_R"
-    elif t.value == '{':
-        t.type = "CURLY_L"
-    elif t.value == '}':
-        t.type = 'CURLY_R'
-    elif t.value == '[':
-        t.type = "SQUARE_L"
-    elif t.value == ']':
-        t.type = "SQUARE_R"
-    elif t.value == ',':
-        t.type = "COMMA"
-    elif t.value == '.':
-        t.type = "PERIOD"
+        # All the values below might have special meaning, hence the distinction
+    if operator.value == '(':
+        operator.type = "BRACKET_L"
+    elif operator.value == ')':
+        operator.type = "BRACKET_R"
+    elif operator.value == '{':
+        operator.type = "CURLY_L"
+    elif operator.value == '}':
+        operator.type = 'CURLY_R'
+    elif operator.value == '[':
+        operator.type = "SQUARE_L"
+    elif operator.value == ']':
+        operator.type = "SQUARE_R"
+    elif operator.value == ',':
+        operator.type = "COMMA"
+    elif operator.value == '.':
+        operator.type = "PERIOD"
         if prefix is True and prefix != postfix:
-            t.type = "PREFIX_DOT"
-    elif t.value == ';':
-        t.type = "SEMICOLON"
-    elif t.value == ':':
-        t.type = "COLON"
-    elif t.value == '@':
-        t.type = "AT"
-    elif t.value == '#':
-        t.type = "POUND"
-    elif t.value == '&':
-        t.type = "AMPERSAND"
+            operator.type = "PREFIX_DOT"
+    elif operator.value == ';':
+        operator.type = "SEMICOLON"
+    elif operator.value == ':':
+        operator.type = "COLON"
+    elif operator.value == '@':
+        operator.type = "AT"
+    elif operator.value == '#':
+        operator.type = "POUND"
+    elif operator.value == '&':
+        operator.type = "AMPERSAND"
         if prefix is True and prefix != postfix:
-            t.type = "PREFIX_AMPERSAND"
-    elif len(t.value) == 2 and t.value[0] == '-' and t.value[1] == '>':
-        t.type = "ARROW"
-    elif t.value == '`':
-        t.type = "BACKTICK"
-    elif t.value == '?':
-        t.type = "QUESTION_MARK"
+            operator.type = "PREFIX_AMPERSAND"
+    elif len(operator.value) == 2 and operator.value[0] == '-' and operator.value[1] == '>':
+        operator.type = "ARROW"
+    elif operator.value == '`':
+        operator.type = "BACKTICK"
+    elif operator.value == '?':
+        operator.type = "QUESTION_MARK"
         if postfix is True and prefix != postfix:
-            t.type = "POSTFIX_QUESTION"
-    elif t.value == '!':
-        t.type = "EXCLAMATION_MARK"
-    elif t.value == "<":
-        t.type = "LESS_THAN"
-    elif t.value == ">":
-        t.type = "GREATER_THAN"
-    elif t.value == "=":
-        t.type = "EQUAL"
-    elif t.value == "...":
-        t.type = "RANGE_OPERATOR"
+            operator.type = "POSTFIX_QUESTION"
+    elif operator.value == '!':
+        operator.type = "EXCLAMATION_MARK"
+    elif operator.value == "<":
+        operator.type = "LESS_THAN"
+    elif operator.value == ">":
+        operator.type = "GREATER_THAN"
+    elif operator.value == "=":
+        operator.type = "EQUAL"
+    elif operator.value == "...":
+        operator.type = "RANGE_OPERATOR"
 
-    # No match here, get the correct type of operator
-    if t.type == "OPERATOR":
-        op = operator_lookup(t.value)
+    if operator.type == "OPERATOR":
+        op = operator_lookup(operator.value)
         if op != "ID":
             if prefix == postfix:
-                t.type = op["infix"].upper() + "LEVELOP"
+                operator.type = op["infix"].upper() + "LEVELOP"
             elif prefix:
-                t.type = "PREFIX_OPERATOR"
+                operator.type = "PREFIX_OPERATOR"
             else:
-                t.type = "POSTFIX_OPERATOR"
-    return t
+                operator.type = "POSTFIX_OPERATOR"
+    return operator
 
 
 def t_error(t):
@@ -184,6 +194,7 @@ operator_lookup = None
 class LexerWrap:
     def __init__(self, **kwargs):
         self.lexer = lex.lex(**kwargs)
+        self.operatorBuffer = str()
 
     def input(self, text):
         self.lexer.input(text)
@@ -191,6 +202,8 @@ class LexerWrap:
     def token(self):
         tok = self.lexer.token()
         # print(tok)
+        if tok is not None and tok.type == "OPERATOR":
+            tok = operator(tok)
         return tok
 
     def find_tok_column(self, token):

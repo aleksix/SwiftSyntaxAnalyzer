@@ -790,6 +790,7 @@ def p_assignable(p):
                | IDENTIFIER
                | assignable trailer
                | assignable PERIOD IDENTIFIER
+               | assignable EXCLAMATION_MARK
     '''
     p[0] = buildTree(p[1:])
 
@@ -868,4 +869,5 @@ s = '''if keys[index] == key {
       }
     }
 }'''
+s = 'remove(keys[index])'
 yacc.parse(s, lexer=lexer)
