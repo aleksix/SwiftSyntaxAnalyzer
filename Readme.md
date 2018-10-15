@@ -12,7 +12,7 @@ The code used for testing should be compiled by [default compilator](http://onli
 
 
 ## How to run.
-You can run our code from parser.py
+You can run our code from SwiftParser.py
 
 ## Testing.
 Tests are entered only from a file. Your tests should be in the root folder and named `in.txt`.
