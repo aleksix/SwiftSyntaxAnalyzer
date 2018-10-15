@@ -81,44 +81,20 @@ swiftLexer.operator_lookup = operator_lookup
 
 def p_constantDeclaration(p):
     '''
-    constantDeclaration : LET constant
-                        | constantDeclaration COMMA constant
+    constantDeclaration : variableModifiers LET varName
+                        | constantDeclaration COMMA varName
     '''
-    # Single constant
-    if len(p) == 3:
-        p[0] = {"constants": [p[2]]}
-    # Multiple constants
+
+    if not isinstance(p[1], dict):
+        # single constant
+        p[0] = {"constants": [p[3]]}
+        if p[1] is not None:
+            p[0]["modifiers"] = p[1]
     else:
+        # multiple constants
         p[0] = {"constants": p[1]["constants"] + [p[3]]}
-
-
-def p_constant(p):
-    '''
-        constant : IDENTIFIER constantTrailer
-    '''
-    p[0] = {"constant": p[1]}
-    for key in p[2]:
-        p[0][key] = p[2][key]
-
-
-def p_constantTrailer(p):
-    '''
-    constantTrailer : EQUAL expression
-                    | COLON IDENTIFIER
-                    | COLON IDENTIFIER EQUAL expression
-    '''
-    if len(p) == 3:
-        # equality or type
-        p[0] = {}
-        # equality
-        if p[1] == "==":
-            p[0]["equal"] = p[2]
-        else:
-            # type
-            p[0]["type"] = p[2]
-    else:
-        # equality AND type
-        p[0] = {"equal": p[4], "type": p[2]}
+        if p[1].get("modifiers", False):
+            p[0]["modifiers"] = p[1]["modifiers"]
 
 
 '''
@@ -128,44 +104,62 @@ def p_constantTrailer(p):
 
 def p_variableModifiers(p):
     '''
-    variableModifiers : WEAK
-                      | UNOWNED
-                      | FILEPRIVATE
+    variableModifiers : FILEPRIVATE
                       | epsilon
     '''
     p[0] = p[1]
 
 
-def p_variableDeclarationStart(p):
+def p_varName(p):
     '''
-    variableDeclarationStart : variableModifiers VAR IDENTIFIER
+        varName : IDENTIFIER varNameTrailer
     '''
-    p[0] = {"modifier": p[1], "variable": p[3]}
+    p[0] = {"varName": p[1]}
+    if p[2] is not None:
+        for key in p[2]:
+            p[0][key] = p[2][key]
+
+
+def p_varNameTrailer(p):
+    '''
+    varNameTrailer : EQUAL expression
+                   | COLON type
+                   | COLON type EQUAL expression
+                   | epsilon
+    '''
+
+    if len(p) == 2:
+        # epsilon
+        pass
+    elif len(p) == 3:
+        # equality or type
+        p[0] = {}
+        # equality
+        if p[1] == "=":
+            p[0]["equal"] = p[2]
+        else:
+            # type
+            p[0]["type"] = p[2]
+    else:
+        # equality AND type
+        p[0] = {"equal": p[4], "type": p[2]}
 
 
 def p_variableDeclaration(p):
     '''
-    variableDeclaration : variableDeclarationList COLON type
-                        | variableDeclarationStart COLON type
-                        | variableDeclarationStart variableAssignment
-                        | variableDeclarationStart COLON type variableAssignment
+    variableDeclaration : variableModifiers VAR varName
+                        | variableDeclaration COMMA varName
     '''
-    p[0] = buildTree("variableDeclaration", p[1:])
-
-
-def p_variableDeclarationList(p):
-    '''
-    variableDeclarationList : variableDeclarationStart
-                            | variableDeclarationList COMMA IDENTIFIER
-    '''
-    p[0] = buildTree("declarationList", p[1:])
-
-
-def p_variableAssignment(p):
-    '''
-    variableAssignment : EQUAL expression
-    '''
-    p[0] = p[2]
+    if not isinstance(p[1], dict):
+        # single constant
+        p[0] = {"variables": [p[3]]}
+        if p[1] is not None:
+            p[0]["modifiers"] = p[1]
+    else:
+        # multiple constants
+        p[0] = {"variables": p[1]["variables"] + [p[3]]}
+        if p[1].get("modifiers", False):
+            p[0]["modifiers"] = p[1]["modifiers"]
 
 
 '''
@@ -175,15 +169,13 @@ def p_variableAssignment(p):
 
 def p_functionDeclaration(p):
     '''
-    functionDeclaration : functionModifiers FUNC IDENTIFIER BRACKET_L argumentList BRACKET_R throws returnType blockBody
+    functionDeclaration : FUNC IDENTIFIER BRACKET_L argumentList BRACKET_R throws returnType blockBody
     '''
-    p[0] = {"function": p[3], "arguments": p[5], "body": p[9]}
-    if p[1] is not None:
-        p[0]["modifier"] = p[1]
-    if p[7] is not None:
+    p[0] = {"function": p[2], "arguments": p[4], "body": p[8]}
+    if p[6] is not None:
         p[0]["throws"] = True
-    if p[8] is not None:
-        p[0]["returns"] = p[8]
+    if p[7] is not None:
+        p[0]["returns"] = p[7]
 
 
 def p_returnType(p):
@@ -193,16 +185,6 @@ def p_returnType(p):
     '''
     if p[1] is not None:
         p[0] = p[2]
-
-
-def p_functionModifiers(p):
-    '''
-    functionModifiers   : FINAL
-                        | OVERRIDE
-                        | PRIVATE
-                        | epsilon
-    '''
-    p[0] = p[1]
 
 
 def p_argumentList(p):
@@ -518,13 +500,23 @@ def p_classBody(p):
 
 def p_classItem(p):
     '''
-    classItem : classAttribute
-              | classInit
+    classItem : classItemModifier classAttribute
+              | classItemModifier classInit
               | classDeinit
-              | variableDeclaration
-              | functionDeclaration
+              | classItemModifier variableDeclaration
+              | classItemModifier functionDeclaration
     '''
     p[0] = buildTree("classItem", p[1:])
+
+
+def p_classItemModifier(p):
+    '''
+    classItemModifier   : FINAL
+                        | OVERRIDE
+                        | PRIVATE
+                        | epsilon
+    '''
+    p[0] = p[1]
 
 
 def p_classAttribute(p):
@@ -666,6 +658,7 @@ def p_assignment(p):
     '''
     assignment  : ternary
                 | assignment ASSIGNMENTLEVELOP ternary
+                | assignment EQUAL ternary
     '''
     p[0] = buildExpressionTree(p)
 
@@ -789,7 +782,6 @@ def p_statement(p):
               | functionCall
               | variableDeclaration
               | constantDeclaration
-              | variableAssignment
               | returnStatement
               | class
               | do
@@ -917,11 +909,11 @@ def p_error(p):
     if p:
         print("Error at line " + str(p.lineno) + " column " + str(lexer.find_tok_column(p)))
         print(p)
-        outfile.write("Error at line " + str(p.lineno) + " column " + str(lexer.find_tok_column(p)))
-        outfile.write(p)
+        outfile.write("Error at line " + str(p.lineno) + " column " + str(lexer.find_tok_column(p)) + "\n")
+        outfile.write(str(p) + "\n")
     else:
         print("EOF error")
-        outfile.write("EOF error")
+        outfile.write("EOF error\n")
 
 
 yacc.yacc(start="sourceFile")
@@ -982,6 +974,9 @@ if 0 == maxAmplitudeFound{
 if 10/10 == 1 {
     // this example will compile successfully
 }'''
+s = '''
+    func x() -> Int {}
+'''
 yacc.parse(s, lexer=lexer)
 if res is not None:
     outfile.write(json.dumps(res, indent=4))
