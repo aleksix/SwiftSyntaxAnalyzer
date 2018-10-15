@@ -334,7 +334,9 @@ def p_loop(p):
          | loopLabel whileLoop
          | loopLabel repeatLoop
     '''
-    p[0] = buildTree("loop", p[1:])
+    if p[1] is not None:
+        p[2]["label"] = p[1]
+    p[0] = p[2]
 
 
 def p_loopLabel(p):
@@ -342,28 +344,28 @@ def p_loopLabel(p):
     loopLabel : IDENTIFIER COLON
               | epsilon
     '''
-    p[0] = buildTree("loopLabel", p[1:])
+    p[0] = {"loopLabel": p[1]}
 
 
 def p_forLoop(p):
     '''
     forLoop : FOR IDENTIFIER IN expression blockBody
     '''
-    p[0] = buildTree("for", p[1:])
+    p[0] = {"for": {"body": p[5], "expression": p[4]}}
 
 
 def p_whileLoop(p):
     '''
     whileLoop : WHILE expression blockBody
     '''
-    p[0] = buildTree("while", p[1:])
+    p[0] = {"while": {"body": p[3], "condition": p[2]}}
 
 
 def p_repeatLoop(p):
     '''
     repeatLoop : REPEAT blockBody WHILE expression
     '''
-    p[0] = buildTree("repeat", p[1:])
+    p[0] = {"repeat": {"body": p[2], "condition": p[4]}}
 
 
 '''
@@ -377,7 +379,7 @@ def p_branch(p):
            | guard
            | switch
     '''
-    p[0] = buildTree("branch", p[1:])
+    p[0] = p[1]
 
 
 def p_if(p):
@@ -385,7 +387,9 @@ def p_if(p):
     if : ifElseIf
        | ifElseIf elseEnd
     '''
-    p[0] = buildTree("if", p[1:])
+    p[0] = p[1]
+    if len(p) == 3:
+        p[0]["else"] = {"body": p[2]}
 
 
 def p_ifElseIf(p):
@@ -394,28 +398,32 @@ def p_ifElseIf(p):
              | IF constantDeclaration blockBody
              | ifElseIf ELSE if
     '''
-    p[0] = buildTree("ifElse", p[1:])
+    if p[1] == "if":
+        p[0] = {"if": {"condition": p[2], "body": p[3]}}
+    else:
+        p[1]["else"] = p[3]
+        p[0] = p[1]
 
 
 def p_elseEnd(p):
     '''
     elseEnd : ELSE blockBody
     '''
-    p[0] = buildTree("else", p[1:])
+    p[0] = p[2]
 
 
 def p_guard(p):
     '''
     guard : GUARD expression elseEnd
     '''
-    p[0] = buildTree("guard", p[1:])
+    p[0] = {"guard": p[2], "else": {"body": p[3]}}
 
 
 def p_switch(p):
     '''
     switch : SWITCH expression CURLY_L switchBody
     '''
-    p[0] = buildTree("switch", p[1:])
+    p[0] = {"switch": {"statement": p[2], "body": p[4]}}
 
 
 def p_switchBody(p):
@@ -423,7 +431,9 @@ def p_switchBody(p):
     switchBody : switchBodyMain CURLY_R
                | switchBodyMain caseBodyDefault CURLY_R
     '''
-    p[0] = buildTree("switchBody", p[1:])
+    p[0] = p[1]
+    if len(p) == 4:
+        p[0] += p[2]
 
 
 def p_switchBodyMain(p):
@@ -439,7 +449,11 @@ def p_caseBody(p):
     caseBody : caseHeader COLON statement
              | caseBody statement
     '''
-    p[0] = buildTree("caseBody", p[1:])
+    p[0] = p[1]
+    if len(p) == 4:
+        p[0]["body"] = [p[3]]
+    else:
+        p[0]["body"] += [p[2]]
 
 
 def p_caseHeader(p):
@@ -447,7 +461,9 @@ def p_caseHeader(p):
     caseHeader : CASE caseCondition
                | CASE caseCondition WHERE expression
     '''
-    p[0] = buildTree("caseHeader", p[1:])
+    p[0] = {"case": {"conditions": p[2]}}
+    if len(p) == 5:
+        p[0]["case"]["specification"] = p[4]
 
 
 def p_caseBodyDefault(p):
@@ -455,7 +471,11 @@ def p_caseBodyDefault(p):
     caseBodyDefault : DEFAULT COLON statement
                     | caseBodyDefault statement
     '''
-    p[0] = buildTree("caseBody", p[1:])
+    if len(p) == 4:
+        p[0] = {"defaultCase": {"body": [p[3]]}}
+    else:
+        p[0] = p[1]
+        p[0]["defaultCase"]["body"] += [p[2]]
 
 
 def p_caseCondition(p):
@@ -463,7 +483,11 @@ def p_caseCondition(p):
     caseCondition : expression
                   | caseCondition COMMA expression
     '''
-    p[0] = buildTree("caseCondition", p[1:])
+    if len(p) == 2:
+        # only 1 expression
+        p[0] = [p[1]]
+    else:
+        p[0] = p[1] + [p[3]]
 
 
 '''
@@ -511,7 +535,12 @@ def p_classItem(p):
               | classItemModifier variableDeclaration
               | classItemModifier functionDeclaration
     '''
-    p[0] = buildTree("classItem", p[1:])
+    if len(p) == 2:
+        p[0] = {"classItem": p[2]}
+        if p[1] is not None:
+            p[0]["modifier"] = p[1]
+    else:
+        p[0] = {"classItem": p[1]}
 
 
 def p_classItemModifier(p):
@@ -546,7 +575,7 @@ def p_classDeinit(p):
     '''
     classDeinit : DEINIT blockBody
     '''
-    p[0] = buildTree("deinit", p[1:])
+    p[0] = {"deinit", p[2]}
 
 
 def p_convenienceInit(p):
@@ -815,7 +844,7 @@ def p_typealias(p):
     '''
     typeAlias : TYPEALIAS IDENTIFIER EQUAL type
     '''
-    p[0] = buildTree("typealias", p[1:])
+    p[0] = {"typealias": {"alias": p[2], "type": p[4]}}
 
 
 def p_type(p):
