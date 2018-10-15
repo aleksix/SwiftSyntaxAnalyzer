@@ -431,9 +431,7 @@ def p_switchBody(p):
     switchBody : switchBodyMain CURLY_R
                | switchBodyMain caseBodyDefault CURLY_R
     '''
-    p[0] = p[1]
-    if len(p) == 4:
-        p[0] += p[2]
+    p[0] = buildTree("switch", p[1:len(p) - 1])
 
 
 def p_switchBodyMain(p):
