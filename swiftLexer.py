@@ -100,15 +100,16 @@ def t_OPERATOR(t):
     t = check_operator(t)
 
     # Incorrect operator - due to swift handling existing operators separately, without regexps
-    while t.type == "OPERATOR":
+    while t is not None and t.type == "OPERATOR":
         # SCREW PLY
         # For some reason, comments are NOT ignored by the lexer, even if the rules have higher precedence
         if t.value == "//":
-            while (t.lexer.lexdata[t.lexer.lexpos]) != '\n':
+            while t.lexer.lexpos < len(t.lexer.lexdata) and t.lexer.lexdata[t.lexer.lexpos] != '\n':
                 t.lexer.lexpos += 1
             t = t.lexer.token()
         elif t.value == "/*":
-            while t.lexer.lexdata[t.lexer.lexpos - 1] != '*' or t.lexer.lexdata[t.lexer.lexpos] != "/":
+            while t.lexer.lexpos < len(t.lexer.lexdata) and (t.lexer.lexdata[t.lexer.lexpos - 1] != '*' or \
+                                                             t.lexer.lexdata[t.lexer.lexpos] != "/"):
                 t.lexer.lexpos += 1
             t.lexer.lexpos += 1
             t = t.lexer.token()

@@ -4,6 +4,8 @@ import json
 
 tokens = swiftLexer.tokens
 
+res = None
+
 # Explanation:
 # The lookup is conducted by the operator itself. We can have an operator in 3 different types :
 #  prefix, infix and postfix
@@ -708,7 +710,7 @@ def p_sourceFile(p):
     '''
     sourceFile : statements
     '''
-    p[0] = p[1]
+    p[0] = {"sourceFile": p[1]}
     global res
     res = p[0]
 
@@ -744,7 +746,10 @@ def p_statements(p):
     statements : statement delimiter
                | statements statement delimiter
     '''
-    p[0] = {"statement": p[1]}
+    if len(p) == 3:
+        p[0] = [p[1]]
+    else:
+        p[0] = p[1] + [p[2]]
 
 
 def p_statement(p):
@@ -939,6 +944,8 @@ s = '''if keys[index] == key {
         print("The key:\(key) is not in the tree")
       }
     }'''
-s = '''func x() { print("Hello world") }'''
+s = '''/* Hello world!
+func x() { print("Hello world") }'''
 yacc.parse(s, lexer=lexer)
-print(json.dumps(res, indent=1))
+if res is not None:
+    print(json.dumps(res, indent=1))
