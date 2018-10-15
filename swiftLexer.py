@@ -1,4 +1,5 @@
 import ply.lex as lex
+import re
 from ply.lex import TOKEN
 
 keywords = ["class", "deinit", "enum", "extension", "func", "import", "init", "internal", "let", "operator",
@@ -200,7 +201,11 @@ operator_lookup = None
 class LexerWrap:
     def __init__(self, **kwargs):
         self.lexer = lex.lex(**kwargs)
-        self.operatorBuffer = str()
+        # Regexp patterns for matching literals
+        self.int_pattern = re.compile(t_INT_LITERAL)
+        self.float_pattern = re.compile(t_FLOAT_LITERAL)
+        self.string_pattern = re.compile(t_STRING_LITERAL)
+        self.expression_pattern = re.compile(t_EXPRESSION_LITERAL)
 
     def input(self, text):
         self.lexer.input(text)
@@ -208,8 +213,6 @@ class LexerWrap:
     def token(self):
         tok = self.lexer.token()
         # print(tok)
-        if tok is not None and tok.type == "OPERATOR":
-            tok = operator(tok)
         return tok
 
     def find_tok_column(self, token):
@@ -218,3 +221,19 @@ class LexerWrap:
         """
         last_cr = self.lexer.lexdata.rfind('\n', 0, token.lexpos)
         return token.lexpos - last_cr
+
+    def literal_type(self, value):
+        if self.int_pattern.match(value):
+            return "integer"
+        elif self.float_pattern.match(value):
+            return "float"
+        elif self.string_pattern.match(value):
+            return "string"
+        elif self.expression_pattern.match(value):
+            return "expressionLiteral"
+        elif value == "True" or value == "False":
+            return "boolean"
+        elif value == "nil":
+            return "nil"
+        # Shouldn't happen ever
+        return None

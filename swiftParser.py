@@ -154,8 +154,13 @@ def p_functionDeclaration(p):
     '''
     functionDeclaration : functionModifiers FUNC IDENTIFIER BRACKET_L argumentList BRACKET_R throws returnType blockBody
     '''
-    p[0] = {"modifier": p[1], "function": p[3], "arguments": p[5], "throws": p[7],
-            "returns": p[8], "body": p[9]}
+    p[0] = {"function": p[3], "arguments": p[5], "body": p[9]}
+    if p[1] is not None:
+        p[0]["modifier"] = p[1]
+    if p[7] is not None:
+        p[0]["throws"] = True
+    if p[8] is not None:
+        p[0]["returns"] = p[8]
 
 
 def p_returnType(p):
@@ -184,7 +189,10 @@ def p_argumentList(p):
                  | epsilon
     '''
     if p[1] is not None:
-        p[0] = {"arguments": p[1:]}
+        if len(p) == 2:
+            p[0] = [p[1]]
+        else:
+            p[0] = p[1] + [p[3]]
 
 
 def p_argumentDeclaration(p):
@@ -248,7 +256,6 @@ def p_throws(p):
     throws  : THROWS
             | epsilon
     '''
-    p[0] = False
     if p[1] is not None:
         p[0] = True
 
@@ -257,7 +264,7 @@ def p_functionCall(p):
     '''    
     functionCall : assignable BRACKET_L callArgumentList BRACKET_R
     '''
-    p[0] = {"functionCall": p[1], "arguments": p[3]}
+    p[0] = {"functionCall": p[1]["item"], "arguments": p[3]}
 
 
 def p_callArgumentList(p):
@@ -266,10 +273,9 @@ def p_callArgumentList(p):
                      | callArgumentList COMMA callArgument
     '''
     if len(p) == 2:
-        p[0] = {"callArgumentList": [p[1]]}
+        p[0] = [p[1]]
     else:
-        p[0] = p[1]
-        p[0]["callArgumentList"].append(p[3])
+        p[0] = p[1] + [p[3]]
 
 
 def p_callArgument(p):
@@ -278,12 +284,14 @@ def p_callArgument(p):
                  | callArgumentReference callArgumentLabel expression
     '''
     'The first part is a hacky one - PLY gets confused by consecutive IDENTIFIER from different rules'
-    p[0] = {"referenced": p[1] is not None}
+    p[0] = {}
     if len(p) == 4:
         p[0]["label"] = p[2]
         p[0]["callArgument"] = p[3]
     else:
         p[0]["callArgument"] = p[2]
+    if p[1] is not None:
+        p[0]["referenced"] = True
 
 
 def p_callArgumentReference(p):
@@ -539,7 +547,10 @@ def p_expression(p):
                 | assignment postfixOperator
                 | assignable
     '''
+    if len(p) == 3:
+        p[1] += p[2]
     p[0] = p[1]
+    pass
 
 
 def p_bitwiseShift(p):
@@ -781,8 +792,8 @@ def p_type(p):
     type : IDENTIFIER
          | IDENTIFIER QUESTION_MARK
     '''
-    p[0] = {"type": p[1], "optional": False}
-    if p[2] is not None:
+    p[0] = {"type": p[1]}
+    if len(p) == 3:
         p[0]["optional"] = True
 
 
@@ -806,7 +817,8 @@ def p_blockBody(p):
     blockBody : CURLY_L statements CURLY_R
               | CURLY_L CURLY_R
     '''
-    p[0] = buildTree("blockBody", p[1:])
+    if len(p) == 4:
+        p[0] = {"codeBlock": p[2]}
 
 
 def p_idlist(p):
@@ -814,7 +826,7 @@ def p_idlist(p):
     idlist : IDENTIFIER
            | idlist COMMA IDENTIFIER
     '''
-    p[0] = buildTree("idlist", p[1:])
+    p[0] = p[1:]
 
 
 '''
@@ -836,7 +848,10 @@ def p_assignable(p):
                | assignable EXCLAMATION_MARK
                | assignable QUESTION_MARK
     '''
-    p[0] = p[1]
+    if len(p) == 2:
+        p[0] = {"item": p[1]}
+    else:
+        p[0] = {"item": p[1], "postfixes": p[2]}
 
 
 def p_trailer(p):
@@ -845,7 +860,8 @@ def p_trailer(p):
             | SQUARE_L expression SQUARE_R
             | SQUARE_L trailer SQUARE_R
     '''
-    p[0] = buildTree("trailer", p[1:])
+    p[0] = {"trailer": p[2]}
+    pass
 
 
 def p_literal(p):
@@ -857,7 +873,8 @@ def p_literal(p):
             | BOOLEAN_LITERAL
             | EXPRESSION_LITERAL
     '''
-    p[0] = buildTree("literal", p[1])
+    p[0] = {"literal": lexer.literal_type(p[1]), "value": p[1]}
+    pass
 
 
 def p_error(p):
@@ -922,6 +939,6 @@ s = '''if keys[index] == key {
         print("The key:\(key) is not in the tree")
       }
     }'''
-s = '''5 + 10 * 11'''
+s = '''func x() { print("Hello world") }'''
 yacc.parse(s, lexer=lexer)
 print(json.dumps(res, indent=1))
