@@ -251,9 +251,9 @@ def p_argumentLabel(p):
     '''
     argumentLabel : IDENTIFIER
                  | UNDERSCORE
+                 | epsilon
     '''
-    if p[1] != "_":
-        p[0] = p[1]
+    p[0] = p[1]
 
 
 def p_throws(p):
@@ -277,9 +277,11 @@ def p_callArgumentList(p):
     '''
     callArgumentList : callArgument
                      | callArgumentList COMMA callArgument
+                     | epsilon
     '''
     if len(p) == 2:
-        p[0] = [p[1]]
+        if p[1] is not None:
+            p[0] = [p[1]]
     else:
         p[0] = p[1] + [p[3]]
 
@@ -563,11 +565,8 @@ def p_expression(p):
     expression  : assignment
                 | PREFIX_OPERATOR assignment
                 | assignment postfixOperator
-                | assignable
     '''
-    if len(p) == 3:
-        p[1] += p[2]
-    p[0] = p[1]
+    p[0] = {"expression": p[1:]}
     pass
 
 
@@ -599,6 +598,7 @@ def p_rangeFormation(p):
     '''
     rangeFormation  : addition
                     | rangeFormation RANGEFORMATIONLEVELOP addition
+                    | rangeFormation RANGE_OPERATOR addition
     '''
     p[0] = buildExpressionTree(p)
 
@@ -650,8 +650,12 @@ def p_ternary(p):
     '''
     ternary : default
             | ternary TERNARYLEVELOP default
+            | expression QUESTION_MARK expression COLON expression
     '''
-    p[0] = buildExpressionTree(p)
+    if len(p) > 2 and p[2] == "?":
+        p[0] = {"ternaryOperator": {"condition": p[1], "true": p[3], "false": p[5]}}
+    else:
+        p[0] = buildExpressionTree(p)
 
 
 def p_assignment(p):
@@ -787,6 +791,7 @@ def p_statement(p):
               | do
               | expression
               | typeAlias
+              | flowControl
     '''
     p[0] = p[1]
     pass
@@ -804,7 +809,7 @@ def p_returnStatement(p):
     '''
     returnStatement : RETURN expression
     '''
-    p[0] = {"name": "returnStatement", "element": p[1]}
+    p[0] = {"return": p[2]}
 
 
 def p_typealias(p):
@@ -817,24 +822,71 @@ def p_typealias(p):
 def p_type(p):
     '''
     type : IDENTIFIER
-         | IDENTIFIER QUESTION_MARK
+         | IDENTIFIER POSTFIX_QUESTION
+         | BRACKET_L tupleType BRACKET_R
+         | BRACKET_L functionType BRACKET_R
+         | BRACKET_L functionType BRACKET_R ARROW type
     '''
-    p[0] = {"type": p[1]}
+    '''
+    Soooooo, tupleType with no labels IS functionType.
+    SCREW YOU SWIFT
+    '''
+    if p[1] != "(":
+        # Non-tuple type
+        p[0] = {"type": p[1]}
+        if len(p) == 3:
+            p[0]["optional"] = True
+    else:
+        if p[len(p) - 2] == "->":
+            # functionType
+            p[2]["return"] = p[5]
+            p[0] = {"functionType": p[2]}
+        else:
+            # Tuple
+            p[0] = {"tupleType": p[2]}
+
+
+def p_functionType(p):
+    '''
+    functionType : type
+                 | functionType COMMA type
+    '''
+    if len(p) == 2:
+        # single type
+        p[0] = {"argumentTypes": [p[1]]}
+    else:
+        p[0] = {"argumentTypes": p[1]["argumentTypes"] + [p[3]]}
+
+
+def p_tupleType(p):
+    '''
+    tupleType : argumentLabel type
+              | tupleType COMMA tupleType
+    '''
     if len(p) == 3:
-        p[0]["optional"] = True
+        # single type
+        item = {"item": p[2]}
+        if p[1] is not None:
+            item["label"] = p[2]
+        p[0] = {"tupleTypes": [item]}
+    else:
+        p[0] = {"tupleTypes": p[1]["tupleTypes"] + [p[3]["tupleTypes"]]}
 
 
-def p_loopControl(p):
+def p_flowControl(p):
     '''
-    loopControl : loopControls loopLabel
+    flowControl : flowControlName loopLabel
     '''
     p[0] = p[1]
 
 
-def p_loopControls(p):
+def p_flowControlName(p):
     '''
-    loopControls : BREAK
-                 | CONTINUE
+    flowControlName : BREAK
+                    | CONTINUE
+                    | FALLTHROUGH
+                    | RETURN
+                    | THROW
     '''
     p[0] = p[1]
 
@@ -871,15 +923,24 @@ def p_assignable(p):
     assignable : literal
                | IDENTIFIER
                | assignable trailer
-               | assignable PERIOD IDENTIFIER
+               | assignable PERIOD assignable
                | assignable EXCLAMATION_MARK
-               | assignable QUESTION_MARK
+               | assignable POSTFIX_QUESTION
                | functionCall
     '''
     if len(p) == 2:
-        p[0] = {"item": p[1]}
+        if isinstance(p[1], dict):
+            p[0] = p[1]
+        else:
+            p[0] = {"item": p[1]}
     else:
-        p[0] = {"item": p[1], "postfixes": p[2]}
+        p[0] = {}
+        if isinstance(p[1], dict) and p[1].get("item", False):
+            p[0]["item"] = p[1]["item"]
+        else:
+            p[0]["item"] = p[1]
+        # Moved for readability
+        p[0]["postfixes"] = p[2:]
 
 
 def p_trailer(p):
@@ -938,45 +999,70 @@ def buildExpressionTree(p):
 
 
 s = '''import Foundation 
-let justConst = 10
-var maxAmplitudeFound: UInt16
-let 🐶🐮 = "dogcow"
-// just comment some section for iTryDouble
-var iTryDouble = 0.0
-var another, declaration, of, double: Double
-var welcomeMessage: String
-welcomeMessage = "Hello"
-/* This is also a comment with 🐶🐮
-but is written over multiple lines. 
-*/
-print(welcomeMessage, max(justConst, 0), "or",  🐶🐮)
-let minValue = UInt8.min, maxValue = UInt8.max
-print("Uint [\(minValue)...\(maxValue)]")
-let anotherPi = 3 + 0.14159
-anotherPi
-//int 17
-let decimalInteger = 17
-let binaryInteger = 0b10001  
-let octalInteger = 0o21      
-let hexadecimalInteger = 0x11
-//double 17
-let decimalDouble = 12.1875
-let exponentDouble = 1.21875e1
-let hexadecimalDouble = 0xC.3p0
-//try alias
-typealias AudioSample = UInt16
-maxAmplitudeFound = AudioSample.min
-if 0 == maxAmplitudeFound{
-    print("True")
-} else {
-    print("False")
+if true
+    {
+        //checkBlockBody
+       if true
+        {
+           if true
+            {
+                 print("Done") 
+            }
+        }
+        else
+        {
+            if false
+            {}
+            else {print("Wrong")}
+            
+        }
 }
-if 10/10 == 1 {
-    // this example will compile successfully
+func tryIt(text: String) -> String{
+    var yep = "Everything just " + text + "))"
+    return yep 
+}
+print(tryIt(text: "fine"))
+func yep(){
+    for i in 1...666 {
+        print("??")
+        if i == 3 {
+            break
+        }
+    }
+}
+while true {
+    yep()
+    break    
+}
+func someFunction(firstParameterName: Int, secondParameterName: Int) {
+    //empty body
+}
+someFunction(firstParameterName: 1, secondParameterName: 2)
+func arithmeticMean(_ numbers: Double...) -> Double {
+    var total: Double = 0
+    for number in numbers {
+        total += number
+    }
+    return total / Double(numbers.count)
+}
+print(arithmeticMean(1, 2, 3, 4, 5))
+
+func printMathResult(_ mathFunction: (Int, Int) -> Int, _ a: Int, _ b: Int) {
+    print("Result: \(mathFunction(a, b))")
+}
+
+func chooseStepFunction(backward: Bool) -> (Int) -> Int {
+    func stepForward(input: Int) -> Int { return input + 1 }
+    func stepBackward(input: Int) -> Int { return input - 1 }
+    return backward ? stepBackward : stepForward
 }'''
-s = '''
-    func x() -> Int {}
-'''
+s = '''func chooseStepFunction(backward: Bool) -> (Int) -> Int {
+    func stepForward(input: Int) -> Int { return input + 1 }
+    func stepBackward(input: Int) -> Int { return input - 1 }
+    return backward ? stepBackward : stepForward
+}'''
 yacc.parse(s, lexer=lexer)
 if res is not None:
     outfile.write(json.dumps(res, indent=4))
+
+outfile.close()
