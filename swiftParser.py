@@ -1,22 +1,28 @@
 import ply.yacc as yacc
+import argparse
 import swiftLexer
 import json
 
+# Tokens, needed by yacc here from lex
 tokens = swiftLexer.tokens
 
+# Resulting tree
 res = None
 
+# Output file
 outfile = open("out.txt", "w")
 
-# Explanation:
-# The lookup is conducted by the operator itself. We can have an operator in 3 different types :
-#  prefix, infix and postfix
-# For prefix and postfix, we only care that the operator exists in such a state.
-# But for infix we need to know the precedence of the operator
-# Thus, the structure is {"operator" : {"prefix":1, "infix":"precedenceGroup", "postfix":1}} - best case
+'''
+ Explanation:
+ The lookup is conducted by the operator itself. We can have an operator in 3 different types :
+  prefix, infix and postfix
+ For prefix and postfix, we only care that the operator exists in such a state.
+ But for infix we need to know the precedence of the operator
+ Thus, the structure is {"operator" : {"prefix":1, "infix":"precedenceGroup", "postfix":1}} - best case
 
-# I don't think we can quite use the PLY built-in precedence table since, best-case, operators can get added dynamically
-# I know nothing about dynamic rule generation in PLY, so this version will have to do
+ I don't think we can quite use the PLY built-in precedence table since, best-case, operators can get added dynamically
+ I know nothing about dynamic rule generation in PLY, so this version will have to do
+'''
 operatorsInfo = {"!": {"prefix": 1},
                  "~": {"prefix": 1},
                  "+": {"prefix": 1, "infix": "Addition"},
@@ -66,13 +72,13 @@ operatorsInfo = {"!": {"prefix": 1},
                  }
 
 
+# Try to get the possible operator type in it's position
 def operator_lookup(opeartor):
     return operatorsInfo.get(opeartor, "ID")
 
 
+# Function binding
 swiftLexer.operator_lookup = operator_lookup
-
-# lexer = swiftLexer.build()
 
 '''
         CONSTANTS
@@ -270,7 +276,6 @@ def p_functionCall(p):
     functionCall : assignable BRACKET_L callArgumentList BRACKET_R
     '''
     p[0] = {"functionCall": p[1]["item"], "arguments": p[3]}
-    pass
 
 
 def p_callArgumentList(p):
@@ -308,7 +313,6 @@ def p_callArgumentReference(p):
                           | epsilon
     '''
     p[0] = p[1]
-    pass
 
 
 def p_callArgumentLabel(p):
@@ -317,7 +321,6 @@ def p_callArgumentLabel(p):
                       | epsilon
     '''
     p[0] = p[1]
-    pass
 
 
 '''
@@ -567,7 +570,6 @@ def p_expression(p):
                 | assignment postfixOperator
     '''
     p[0] = {"expression": p[1:]}
-    pass
 
 
 def p_bitwiseShift(p):
@@ -748,7 +750,6 @@ def p_import(p):
         p[0] = {"import": ''.join(p[3:]), "importType": p[2]["importType"]}
     else:
         p[0] = {"import": ''.join(p[2:])}
-    pass
 
 
 def p_importType(p):
@@ -774,7 +775,6 @@ def p_statements(p):
         p[0] = [p[1]]
     else:
         p[0] = p[1] + [p[2]]
-    pass
 
 
 def p_statement(p):
@@ -794,7 +794,6 @@ def p_statement(p):
               | flowControl
     '''
     p[0] = p[1]
-    pass
 
 
 def p_delimiter(p):
@@ -913,6 +912,7 @@ def p_idlist(p):
 '''
 
 
+# PLY doesn't have a built-in epsilon
 def p_epsilon(p):
     'epsilon :'
     pass
@@ -950,7 +950,6 @@ def p_trailer(p):
             | SQUARE_L trailer SQUARE_R
     '''
     p[0] = {"trailer": p[2]}
-    pass
 
 
 def p_literal(p):
@@ -963,7 +962,6 @@ def p_literal(p):
             | EXPRESSION_LITERAL
     '''
     p[0] = {"literal": lexer.literal_type(p[1]), "value": p[1]}
-    pass
 
 
 def p_error(p):
@@ -977,7 +975,7 @@ def p_error(p):
         outfile.write("EOF error\n")
 
 
-yacc.yacc(start="sourceFile")
+yacc.yacc(start="sourceFile", errorlog=yacc.NullLogger())
 
 lexer = swiftLexer.LexerWrap()
 
@@ -998,71 +996,17 @@ def buildExpressionTree(p):
     return p[0]
 
 
-s = '''import Foundation 
-if true
-    {
-        //checkBlockBody
-       if true
-        {
-           if true
-            {
-                 print("Done") 
-            }
-        }
-        else
-        {
-            if false
-            {}
-            else {print("Wrong")}
-            
-        }
-}
-func tryIt(text: String) -> String{
-    var yep = "Everything just " + text + "))"
-    return yep 
-}
-print(tryIt(text: "fine"))
-func yep(){
-    for i in 1...666 {
-        print("??")
-        if i == 3 {
-            break
-        }
-    }
-}
-while true {
-    yep()
-    break    
-}
-func someFunction(firstParameterName: Int, secondParameterName: Int) {
-    //empty body
-}
-someFunction(firstParameterName: 1, secondParameterName: 2)
-func arithmeticMean(_ numbers: Double...) -> Double {
-    var total: Double = 0
-    for number in numbers {
-        total += number
-    }
-    return total / Double(numbers.count)
-}
-print(arithmeticMean(1, 2, 3, 4, 5))
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Syntax Analyzer')
+    parser.add_argument('input', metavar='in', type=str,
+                        help='Full or relative (according to project folder) path  to file to process by the program')
 
-func printMathResult(_ mathFunction: (Int, Int) -> Int, _ a: Int, _ b: Int) {
-    print("Result: \(mathFunction(a, b))")
-}
+    args = parser.parse_args()
+    input_file = args.input
 
-func chooseStepFunction(backward: Bool) -> (Int) -> Int {
-    func stepForward(input: Int) -> Int { return input + 1 }
-    func stepBackward(input: Int) -> Int { return input - 1 }
-    return backward ? stepBackward : stepForward
-}'''
-s = '''func chooseStepFunction(backward: Bool) -> (Int) -> Int {
-    func stepForward(input: Int) -> Int { return input + 1 }
-    func stepBackward(input: Int) -> Int { return input - 1 }
-    return backward ? stepBackward : stepForward
-}'''
-yacc.parse(s, lexer=lexer)
-if res is not None:
-    outfile.write(json.dumps(res, indent=4))
-
-outfile.close()
+    with open(input_file) as f:
+        content = f.read()
+        yacc.parse(content, lexer=lexer)
+        if res is not None:
+            outfile.write(json.dumps(res, indent=4))
+        outfile.close()
