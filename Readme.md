@@ -18,7 +18,7 @@ You can run our code from SwiftParser.py
 Tests are entered only from a file. Your tests should be in the root folder and named `in.txt`.
 The output of the program occurs in `out.txt`.
 In the root folder is the folder `Test` which contains tests that you can use to verify the correct work of our code.
-We recommend you to read bnf.docx (You can this file in the root folder) or sections "What we implemented" and "What we don't implement". 
+We recommend you to read bnf.pdf (You can this file in the root folder) or sections "What we implemented" and "What we don't implement". 
 # What we implemented.
 * imports 
 * functions (with params, function calls) 
