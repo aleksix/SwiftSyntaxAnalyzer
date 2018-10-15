@@ -6,6 +6,8 @@ tokens = swiftLexer.tokens
 
 res = None
 
+outfile = open("out.txt", "w")
+
 # Explanation:
 # The lookup is conducted by the operator itself. We can have an operator in 3 different types :
 #  prefix, infix and postfix
@@ -915,8 +917,11 @@ def p_error(p):
     if p:
         print("Error at line " + str(p.lineno) + " column " + str(lexer.find_tok_column(p)))
         print(p)
+        outfile.write("Error at line " + str(p.lineno) + " column " + str(lexer.find_tok_column(p)))
+        outfile.write(p)
     else:
         print("EOF error")
+        outfile.write("EOF error")
 
 
 yacc.yacc(start="sourceFile")
@@ -979,4 +984,4 @@ if 10/10 == 1 {
 }'''
 yacc.parse(s, lexer=lexer)
 if res is not None:
-    print(json.dumps(res, indent=1))
+    outfile.write(json.dumps(res, indent=4))
