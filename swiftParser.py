@@ -721,10 +721,13 @@ def p_import(p):
            | IMPORT importType IDENTIFIER PERIOD IDENTIFIER
            | import PERIOD IDENTIFIER
     '''
-    if p[2].get("importType", False):
-        p[0] = {"import": ''.join(str[3:]), "importType": p[2]["importType"]}
+    if len(p) == 3:
+        p[0] = {"import": p[2]}
+    elif p[2].get("importType", False):
+        p[0] = {"import": ''.join(p[3:]), "importType": p[2]["importType"]}
     else:
         p[0] = {"import": ''.join(p[2:])}
+    pass
 
 
 def p_importType(p):
@@ -738,7 +741,7 @@ def p_importType(p):
                | VAR
                | FUNC
     '''
-    p[0] = {"importType": p[1]}
+    p[0] = p[1]
 
 
 def p_statements(p):
@@ -750,6 +753,7 @@ def p_statements(p):
         p[0] = [p[1]]
     else:
         p[0] = p[1] + [p[2]]
+    pass
 
 
 def p_statement(p):
@@ -768,6 +772,7 @@ def p_statement(p):
               | expression
     '''
     p[0] = p[1]
+    pass
 
 
 def p_delimiter(p):
@@ -910,42 +915,43 @@ def buildExpressionTree(p):
         p[0] = {"operator": p[2], "left": p[1], "right": p[3]}
     return p[0]
 
-
-s = '''if keys[index] == key {
-      if isLeaf {
-        keys.remove(at: index)
-        values.remove(at: index)
-        owner.numberOfKeys -= 1
-      } else {
-        let predecessor = children![index].inorderPredecessor
-        keys[index] = predecessor.keys.last!
-        values[index] = predecessor.values.last!
-        children![index].remove(keys[index])
-        if children![index].numberOfKeys < owner.order {
-          fix(childWithTooFewKeys: children![index], atIndex: index)
-        }
-      }
-    } else if key < keys[index] {
-      if let leftChild = children?[index] {
-        leftChild.remove(key)
-        if leftChild.numberOfKeys < owner.order {
-          fix(childWithTooFewKeys: leftChild, atIndex: index)
-        }
-      } else {
-        print("The key:\(key) is not in the tree.")
-      }
-    } else {
-      if let rightChild = children?[(index + 1)] {
-        rightChild.remove(key)
-        if rightChild.numberOfKeys < owner.order {
-          fix(childWithTooFewKeys: rightChild, atIndex: (index + 1))
-        }
-      } else {
-        print("The key:\(key) is not in the tree")
-      }
-    }'''
-s = '''/* Hello world!
-func x() { print("Hello world") }'''
+s = '''import Foundation 
+let justConst = 10
+var maxAmplitudeFound: UInt16
+let 🐶🐮 = "dogcow"
+// just comment some section for iTryDouble
+var iTryDouble = 0.0
+var another, declaration, of, double: Double
+var welcomeMessage: String
+welcomeMessage = "Hello"
+/* This is also a comment with 🐶🐮
+but is written over multiple lines. 
+*/
+print(welcomeMessage, max(justConst, 0), "or",  🐶🐮)
+let minValue = UInt8.min, maxValue = UInt8.max
+print("Uint [\(minValue)...\(maxValue)]")
+let anotherPi = 3 + 0.14159
+anotherPi
+//int 17
+let decimalInteger = 17
+let binaryInteger = 0b10001  
+let octalInteger = 0o21      
+let hexadecimalInteger = 0x11
+//double 17
+let decimalDouble = 12.1875
+let exponentDouble = 1.21875e1
+let hexadecimalDouble = 0xC.3p0
+//try alias
+typealias AudioSample = UInt16
+maxAmplitudeFound = AudioSample.min
+if 0 == maxAmplitudeFound{
+    print("True")
+} else {
+    print("False")
+}
+if 10/10 == 1 {
+    // this example will compile successfully
+}'''
 yacc.parse(s, lexer=lexer)
 if res is not None:
     print(json.dumps(res, indent=1))
