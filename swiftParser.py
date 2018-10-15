@@ -257,7 +257,7 @@ def p_functionCall(p):
     '''    
     functionCall : assignable BRACKET_L callArgumentList BRACKET_R
     '''
-    p[0] = buildTree("functionCall", p[1:])
+    p[0] = {"functionCall": p[1], "arguments": p[3]}
 
 
 def p_callArgumentList(p):
@@ -265,7 +265,11 @@ def p_callArgumentList(p):
     callArgumentList : callArgument
                      | callArgumentList COMMA callArgument
     '''
-    p[0] = buildTree("CallArgumentList", p[1:])
+    if len(p) == 2:
+        p[0] = {"callArgumentList": [p[1]]}
+    else:
+        p[0] = p[1]
+        p[0]["callArgumentList"].append(p[3])
 
 
 def p_callArgument(p):
@@ -287,7 +291,7 @@ def p_callArgumentReference(p):
     callArgumentReference : AMPERSAND
                           | epsilon
     '''
-    p[0] = buildTree("isReferenced", p[1:])
+    p[0] = p[1]
 
 
 def p_callArgumentLabel(p):
@@ -807,24 +811,21 @@ def p_type(p):
     if p[2] is not None:
         p[0]["optional"] = True
 
+
 def p_loopControl(p):
     '''
-    loopControl : LoopControls ControlLabel
+    loopControl : loopControls loopLabel
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = p[1]
+
 
 def p_loopControls(p):
     '''
-    loopControls : BREAK | CONTINUE
+    loopControls : BREAK
+                 | CONTINUE
     '''
-    p[0] = buildTree(p[1:])
+    p[0] = p[1]
 
-def p_controlLabel(p):
-    '''
-    controlLabel : IDENTIFIER
-                 | epsilon
-    '''
-    p[0] = buildTree(p[1:])
 
 def p_expression(p):
     '''
@@ -945,5 +946,6 @@ s = '''if keys[index] == key {
         print("The key:\(key) is not in the tree")
       }
     }'''
+s = '''hello(world, now)'''
 yacc.parse(s, lexer=lexer)
 print(json.dumps(res, indent=1))
