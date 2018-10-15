@@ -299,7 +299,7 @@ def p_callArgumentLabel(p):
     callArgumentLabel : IDENTIFIER COLON
                       | epsilon
     '''
-    p[0] = buildTree("callArgumentLabel", p[1:])
+    p[0] = p[1]
 
 
 '''
@@ -532,15 +532,22 @@ def p_convenienceInit(p):
 '''
 
 
+def p_expression(p):
+    '''
+    expression  : bitwiseShift
+                | PREFIX_OPERATOR bitwiseShift
+                | bitwiseShift postfixOperator
+                | assignable
+    '''
+    p[0] = p[1]
+
+
 def p_bitwiseShift(p):
     '''
     bitwiseShift : multiplication
                  | bitwiseShift BITWISESHIFTLEVELOP multiplication
     '''
-    if len(p) == 2:
-        p[0] = p[1]
-    else:
-        p[0] = {"first": p[1], "operator": p[2], "second": p[3]}
+    p[0] = buildExpressionTree(p)
 
 
 def p_multiplication(p):
@@ -548,10 +555,7 @@ def p_multiplication(p):
     multiplication : addition
                    | multiplication MULTIPLICATIONLEVELOP addition
     '''
-    if len(p) == 2:
-        p[0] = p[1]
-    else:
-        p[0] = {"first": p[1], "operator": p[2], "second": p[3]}
+    p[0] = buildExpressionTree(p)
 
 
 def p_addition(p):
@@ -559,10 +563,7 @@ def p_addition(p):
     addition : rangeFormation
              | addition ADDITIONLEVELOP rangeFormation
     '''
-    if len(p) == 2:
-        p[0] = p[1]
-    else:
-        p[0] = {"first": p[1], "operator": p[2], "second": p[3]}
+    p[0] = buildExpressionTree(p)
 
 
 def p_rangeFormation(p):
@@ -570,10 +571,7 @@ def p_rangeFormation(p):
     rangeFormation  : casting
                     | rangeFormation RANGEFORMATIONLEVELOP casting
     '''
-    if len(p) == 2:
-        p[0] = p[1]
-    else:
-        p[0] = {"first": p[1], "operator": p[2], "second": p[3]}
+    p[0] = buildExpressionTree(p)
 
 
 def p_casting(p):
@@ -581,10 +579,7 @@ def p_casting(p):
     casting : nilCoalescing
             | casting CASTINGLEVELOP nilCoalescing
     '''
-    if len(p) == 2:
-        p[0] = p[1]
-    else:
-        p[0] = {"first": p[1], "operator": p[2], "second": p[3]}
+    p[0] = buildExpressionTree(p)
 
 
 def p_nilCoalescing(p):
@@ -592,10 +587,7 @@ def p_nilCoalescing(p):
     nilCoalescing : comparison
                   | nilCoalescing NILCOALESCINGLEVELOP comparison
     '''
-    if len(p) == 2:
-        p[0] = p[1]
-    else:
-        p[0] = {"first": p[1], "operator": p[2], "second": p[3]}
+    p[0] = buildExpressionTree(p)
 
 
 def p_comparison(p):
@@ -606,10 +598,7 @@ def p_comparison(p):
                 | comparison GREATER_THAN logicalConjugation
     '''
     'The rules with LESS_THAN/GREATER_THEN were done because they could also mean a generic'
-    if len(p) == 2:
-        p[0] = p[1]
-    else:
-        p[0] = {"first": p[1], "operator": p[2], "second": p[3]}
+    p[0] = buildExpressionTree(p)
 
 
 def p_logicalConjugation(p):
@@ -617,10 +606,7 @@ def p_logicalConjugation(p):
     logicalConjugation  : default
                         | logicalConjugation LOGICALCONJUGATIONLEVELOP default
     '''
-    if len(p) == 2:
-        p[0] = p[1]
-    else:
-        p[0] = {"first": p[1], "operator": p[2], "second": p[3]}
+    p[0] = buildExpressionTree(p)
 
 
 def p_default(p):
@@ -628,10 +614,7 @@ def p_default(p):
     default : ternary
             | default DEFAULTLEVELOP ternary
     '''
-    if len(p) == 2:
-        p[0] = p[1]
-    else:
-        p[0] = {"first": p[1], "operator": p[2], "second": p[3]}
+    p[0] = buildExpressionTree(p)
 
 
 def p_ternary(p):
@@ -639,10 +622,7 @@ def p_ternary(p):
     ternary : assignment
             | ternary TERNARYLEVELOP assignment
     '''
-    if len(p) == 2:
-        p[0] = p[1]
-    else:
-        p[0] = {"first": p[1], "operator": p[2], "second": p[3]}
+    p[0] = buildExpressionTree(p)
 
 
 def p_assignment(p):
@@ -650,10 +630,7 @@ def p_assignment(p):
     assignment  : term
                 | assignment ASSIGNMENTLEVELOP term
     '''
-    if len(p) == 2:
-        p[0] = p[1]
-    else:
-        p[0] = {"first": p[1], "operator": p[2], "second": p[3]}
+    p[0] = buildExpressionTree(p)
 
 
 def p_term(p):
@@ -661,10 +638,7 @@ def p_term(p):
     term : assignable
          | BRACKET_L expression BRACKET_R
     '''
-    if len(p) == 2:
-        p[0] = p[1]
-    else:
-        p[0] = p[2]
+    p[0] = buildExpressionTree(p)
 
 
 def p_postfixOperator(p):
@@ -827,16 +801,6 @@ def p_loopControls(p):
     p[0] = p[1]
 
 
-def p_expression(p):
-    '''
-    expression  : bitwiseShift
-                | PREFIX_OPERATOR bitwiseShift
-                | bitwiseShift postfixOperator
-                | assignable
-    '''
-    p[0] = p[1]
-
-
 def p_blockBody(p):
     '''
     blockBody : CURLY_L statements CURLY_R
@@ -913,6 +877,18 @@ def buildTree(name, contents):
     return {"name": name, "contents": contents}
 
 
+def buildExpressionTree(p):
+    # Term condensed into 1 item
+    if len(p) == 2:
+        p[0] = p[1]
+    # Bracketed term
+    elif len(p) == 3:
+        p[0] = p[2]
+    else:
+        p[0] = {"operator": p[2], "left": p[1], "right": p[3]}
+    return p[0]
+
+
 s = '''if keys[index] == key {
       if isLeaf {
         keys.remove(at: index)
@@ -946,6 +922,6 @@ s = '''if keys[index] == key {
         print("The key:\(key) is not in the tree")
       }
     }'''
-s = '''hello(world, now)'''
+s = '''10 * 11 + 5'''
 yacc.parse(s, lexer=lexer)
 print(json.dumps(res, indent=1))
