@@ -108,8 +108,10 @@ def t_OPERATOR(t):
                 t.lexer.lexpos += 1
             t = t.lexer.token()
         elif t.value == "/*":
-            while t.lexer.lexpos < len(t.lexer.lexdata) and (t.lexer.lexdata[t.lexer.lexpos - 1] != '*' or \
-                                                             t.lexer.lexdata[t.lexer.lexpos] != "/"):
+            while t.lexer.lexpos < len(t.lexer.lexdata) and (
+                    t.lexer.lexdata[t.lexer.lexpos - 1] != '*' or t.lexer.lexdata[t.lexer.lexpos] != "/"):
+                if t.lexer.lexdata[t.lexer.lexpos] == "\n":
+                    t.lexer.lineno += 1
                 t.lexer.lexpos += 1
             t.lexer.lexpos += 1
             t = t.lexer.token()

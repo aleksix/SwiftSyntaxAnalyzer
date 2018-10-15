@@ -77,27 +77,46 @@ swiftLexer.operator_lookup = operator_lookup
 '''
 
 
-def p_constantDeclarationList(p):
-    '''
-    constantDeclarationList : LET IDENTIFIER
-                            | constantDeclarationList COMMA IDENTIFIER
-    '''
-    p[0] = buildTree("constantDeclarationList", p[1:])
-
-
 def p_constantDeclaration(p):
     '''
-    constantDeclaration : constantDeclarationList
-                        | constantDeclarationList COLON type
+    constantDeclaration : LET constant
+                        | constantDeclaration COMMA constant
     '''
-    p[0] = buildTree("constantDeclaration", p[1:])
+    # Single constant
+    if len(p) == 3:
+        p[0] = {"constants": [p[2]]}
+    # Multiple constants
+    else:
+        p[0] = {"constants": p[1]["constants"] + [p[3]]}
 
 
-def p_constantAssignment(p):
+def p_constant(p):
     '''
-    constantAssignment : constantDeclaration EQUAL expression
+        constant : IDENTIFIER constantTrailer
     '''
-    p[0] = {"constant": p[1], "value": p[3]}
+    p[0] = {"constant": p[1]}
+    for key in p[2]:
+        p[0][key] = p[2][key]
+
+
+def p_constantTrailer(p):
+    '''
+    constantTrailer : EQUAL expression
+                    | COLON IDENTIFIER
+                    | COLON IDENTIFIER EQUAL expression
+    '''
+    if len(p) == 3:
+        # equality or type
+        p[0] = {}
+        # equality
+        if p[1] == "==":
+            p[0]["equal"] = p[2]
+        else:
+            # type
+            p[0]["type"] = p[2]
+    else:
+        # equality AND type
+        p[0] = {"equal": p[4], "type": p[2]}
 
 
 '''
@@ -267,6 +286,7 @@ def p_functionCall(p):
     functionCall : assignable BRACKET_L callArgumentList BRACKET_R
     '''
     p[0] = {"functionCall": p[1]["item"], "arguments": p[3]}
+    pass
 
 
 def p_callArgumentList(p):
@@ -302,6 +322,7 @@ def p_callArgumentReference(p):
                           | epsilon
     '''
     p[0] = p[1]
+    pass
 
 
 def p_callArgumentLabel(p):
@@ -310,6 +331,7 @@ def p_callArgumentLabel(p):
                       | epsilon
     '''
     p[0] = p[1]
+    pass
 
 
 '''
@@ -380,7 +402,7 @@ def p_if(p):
 def p_ifElseIf(p):
     '''
     ifElseIf : IF expression blockBody
-             | IF constantAssignment blockBody
+             | IF constantDeclaration blockBody
              | ifElseIf ELSE if
     '''
     p[0] = buildTree("ifElse", p[1:])
@@ -764,12 +786,13 @@ def p_statement(p):
               | functionDeclaration
               | functionCall
               | variableDeclaration
-              | constantAssignment
+              | constantDeclaration
               | variableAssignment
               | returnStatement
               | class
               | do
               | expression
+              | typeAlias
     '''
     p[0] = p[1]
     pass
@@ -794,7 +817,7 @@ def p_typealias(p):
     '''
     typeAlias : TYPEALIAS IDENTIFIER EQUAL type
     '''
-    p[0] = buildTree("typealieas", p[1:])
+    p[0] = buildTree("typealias", p[1:])
 
 
 def p_type(p):
@@ -857,6 +880,7 @@ def p_assignable(p):
                | assignable PERIOD IDENTIFIER
                | assignable EXCLAMATION_MARK
                | assignable QUESTION_MARK
+               | functionCall
     '''
     if len(p) == 2:
         p[0] = {"item": p[1]}
@@ -914,6 +938,7 @@ def buildExpressionTree(p):
     else:
         p[0] = {"operator": p[2], "left": p[1], "right": p[3]}
     return p[0]
+
 
 s = '''import Foundation 
 let justConst = 10
