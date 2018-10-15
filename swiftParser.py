@@ -534,9 +534,9 @@ def p_convenienceInit(p):
 
 def p_expression(p):
     '''
-    expression  : bitwiseShift
-                | PREFIX_OPERATOR bitwiseShift
-                | bitwiseShift postfixOperator
+    expression  : assignment
+                | PREFIX_OPERATOR assignment
+                | assignment postfixOperator
                 | assignable
     '''
     p[0] = p[1]
@@ -544,58 +544,58 @@ def p_expression(p):
 
 def p_bitwiseShift(p):
     '''
-    bitwiseShift : multiplication
-                 | bitwiseShift BITWISESHIFTLEVELOP multiplication
+    bitwiseShift : term
+                 | bitwiseShift BITWISESHIFTLEVELOP term
     '''
     p[0] = buildExpressionTree(p)
 
 
 def p_multiplication(p):
     '''
-    multiplication : addition
-                   | multiplication MULTIPLICATIONLEVELOP addition
+    multiplication : bitwiseShift
+                   | multiplication MULTIPLICATIONLEVELOP bitwiseShift
     '''
     p[0] = buildExpressionTree(p)
 
 
 def p_addition(p):
     '''
-    addition : rangeFormation
-             | addition ADDITIONLEVELOP rangeFormation
+    addition : multiplication
+             | addition ADDITIONLEVELOP multiplication
     '''
     p[0] = buildExpressionTree(p)
 
 
 def p_rangeFormation(p):
     '''
-    rangeFormation  : casting
-                    | rangeFormation RANGEFORMATIONLEVELOP casting
+    rangeFormation  : addition
+                    | rangeFormation RANGEFORMATIONLEVELOP addition
     '''
     p[0] = buildExpressionTree(p)
 
 
 def p_casting(p):
     '''
-    casting : nilCoalescing
-            | casting CASTINGLEVELOP nilCoalescing
+    casting : rangeFormation
+            | casting CASTINGLEVELOP rangeFormation
     '''
     p[0] = buildExpressionTree(p)
 
 
 def p_nilCoalescing(p):
     '''
-    nilCoalescing : comparison
-                  | nilCoalescing NILCOALESCINGLEVELOP comparison
+    nilCoalescing : casting
+                  | nilCoalescing NILCOALESCINGLEVELOP casting
     '''
     p[0] = buildExpressionTree(p)
 
 
 def p_comparison(p):
     '''
-    comparison  : logicalConjugation
-                | comparison COMPARISONLEVELOP logicalConjugation
-                | comparison LESS_THAN logicalConjugation
-                | comparison GREATER_THAN logicalConjugation
+    comparison  : nilCoalescing
+                | comparison COMPARISONLEVELOP nilCoalescing
+                | comparison LESS_THAN nilCoalescing
+                | comparison GREATER_THAN nilCoalescing
     '''
     'The rules with LESS_THAN/GREATER_THEN were done because they could also mean a generic'
     p[0] = buildExpressionTree(p)
@@ -603,32 +603,32 @@ def p_comparison(p):
 
 def p_logicalConjugation(p):
     '''
-    logicalConjugation  : default
-                        | logicalConjugation LOGICALCONJUGATIONLEVELOP default
+    logicalConjugation  : comparison
+                        | logicalConjugation LOGICALCONJUGATIONLEVELOP comparison
     '''
     p[0] = buildExpressionTree(p)
 
 
 def p_default(p):
     '''
-    default : ternary
-            | default DEFAULTLEVELOP ternary
+    default : logicalConjugation
+            | default DEFAULTLEVELOP logicalConjugation
     '''
     p[0] = buildExpressionTree(p)
 
 
 def p_ternary(p):
     '''
-    ternary : assignment
-            | ternary TERNARYLEVELOP assignment
+    ternary : default
+            | ternary TERNARYLEVELOP default
     '''
     p[0] = buildExpressionTree(p)
 
 
 def p_assignment(p):
     '''
-    assignment  : term
-                | assignment ASSIGNMENTLEVELOP term
+    assignment  : ternary
+                | assignment ASSIGNMENTLEVELOP ternary
     '''
     p[0] = buildExpressionTree(p)
 
@@ -922,6 +922,6 @@ s = '''if keys[index] == key {
         print("The key:\(key) is not in the tree")
       }
     }'''
-s = '''10 * 11 + 5'''
+s = '''5 + 10 * 11'''
 yacc.parse(s, lexer=lexer)
 print(json.dumps(res, indent=1))
